@@ -5,32 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Lista de Nombres</title>
     
-    <!-- Firebase SDK v11 (Modular) -->
-    <script type="module">
-        // Import Firebase modules
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.8.1/firebase-app.js";
-        import { getFirestore, collection, addDoc, deleteDoc, doc, onSnapshot, orderBy, query, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.8.1/firebase-firestore.js";
-        import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.8.1/firebase-auth.js";
-
-        // Firebase configuration
-        const firebaseConfig = {
-            apiKey: "AIzaSyBKItCLTReTU0tmm3lHSOKPMS5TEtv6dT0",
-            authDomain: "gbaddalbion.firebaseapp.com",
-            projectId: "gbaddalbion",
-            storageBucket: "gbaddalbion.firebasestorage.app",
-            messagingSenderId: "656297370009",
-            appId: "1:656297370009:web:a871f5435583b06792b308",
-            measurementId: "G-M0SCQ3KFY4"
-        };
-
-        // Initialize Firebase
-        const app = initializeApp(firebaseConfig);
-        const db = getFirestore(app);
-        const auth = getAuth(app);
-
-        // Make Firebase available globally
-        window.firebaseApp = { app, db, auth, addDoc, deleteDoc, doc, collection, onSnapshot, orderBy, query, serverTimestamp, signInAnonymously };
-    </script>
+    <!-- Firebase SDK v9 Compat (más estable) -->
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
     
     <style>
         * {
@@ -333,36 +311,45 @@
     </div>
 
     <script>
+        // Firebase configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyBKItCLTReTU0tmm3lHSOKPMS5TEtv6dT0",
+            authDomain: "gbaddalbion.firebaseapp.com",
+            projectId: "gbaddalbion",
+            storageBucket: "gbaddalbion.firebasestorage.app",
+            messagingSenderId: "656297370009",
+            appId: "1:656297370009:web:a871f5435583b06792b308",
+            measurementId: "G-M0SCQ3KFY4"
+        };
+
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+        const auth = firebase.auth();
+
         // Variables globales
         const ADMIN_PASSWORD = "admin123"; // Cambia esta contraseña
         let isAdminLoggedIn = false;
         let names = [];
         let unsubscribe = null;
 
-        // Esperar a que Firebase esté disponible
+        // Inicializar cuando la página carga
         window.addEventListener('load', function() {
-            setTimeout(() => {
-                if (window.firebaseApp) {
-                    initializeAuth();
-                    setupRealtimeListener();
-                } else {
-                    console.error('Firebase no se cargó correctamente');
-                    updateFirebaseStatus(false);
-                }
-            }, 1000);
+            console.log('Página cargada, inicializando Firebase...');
+            initializeAuth();
+            setupRealtimeListener();
         });
 
         // ============= AUTENTICACIÓN =============
         function initializeAuth() {
-            const { auth, signInAnonymously } = window.firebaseApp;
-            
-            signInAnonymously(auth)
+            console.log('Iniciando autenticación...');
+            auth.signInAnonymously()
                 .then(() => {
+                    console.log('✅ Autenticado correctamente con Firebase');
                     updateFirebaseStatus(true);
-                    console.log('Autenticado correctamente con Firebase');
                 })
                 .catch((error) => {
-                    console.error("Error en autenticación:", error);
+                    console.error('❌ Error en autenticación:', error);
                     updateFirebaseStatus(false);
                 });
         }
@@ -380,25 +367,26 @@
 
         // ============= FIRESTORE EN TIEMPO REAL =============
         function setupRealtimeListener() {
-            const { db, collection, onSnapshot, orderBy, query } = window.firebaseApp;
+            console.log('Configurando listener en tiempo real...');
             
-            const namesQuery = query(collection(db, 'names'), orderBy('timestamp', 'asc'));
-            
-            unsubscribe = onSnapshot(namesQuery, (snapshot) => {
-                names = [];
-                snapshot.forEach((doc) => {
-                    names.push({
-                        id: doc.id,
-                        name: doc.data().name,
-                        timestamp: doc.data().timestamp
+            unsubscribe = db.collection('names')
+                .orderBy('timestamp', 'asc')
+                .onSnapshot((snapshot) => {
+                    console.log('📡 Datos recibidos desde Firestore');
+                    names = [];
+                    snapshot.forEach((doc) => {
+                        names.push({
+                            id: doc.id,
+                            name: doc.data().name,
+                            timestamp: doc.data().timestamp
+                        });
                     });
+                    console.log('Total nombres:', names.length);
+                    updateDisplay();
+                }, (error) => {
+                    console.error('❌ Error al escuchar cambios:', error);
+                    showMessage('adminMessage', 'Error de conexión: ' + error.message, 'error');
                 });
-                updateDisplay();
-                console.log('Nombres actualizados:', names.length);
-            }, (error) => {
-                console.error("Error al escuchar cambios:", error);
-                showMessage('adminMessage', 'Error de conexión con la base de datos', 'error');
-            });
         }
 
         // ============= FUNCIONES DE ADMIN =============
@@ -412,8 +400,10 @@
                 updateDisplay();
                 showMessage('loginMessage', 'Acceso concedido correctamente', 'success');
                 document.getElementById('adminPassword').value = '';
+                console.log('👑 Admin logueado');
             } else {
                 showMessage('loginMessage', 'Contraseña incorrecta', 'error');
+                console.log('❌ Contraseña incorrecta');
             }
         }
 
@@ -424,6 +414,7 @@
             document.getElementById('adminPassword').value = '';
             document.getElementById('nameInput').value = '';
             updateDisplay();
+            console.log('👋 Admin cerró sesión');
         }
 
         // ============= CRUD OPERATIONS =============
@@ -449,21 +440,21 @@
             }
 
             try {
+                console.log('📝 Agregando nombre:', name);
                 showMessage('adminMessage', 'Agregando nombre...', 'loading');
                 
-                const { db, collection, addDoc, serverTimestamp } = window.firebaseApp;
-                
-                await addDoc(collection(db, 'names'), {
+                await db.collection('names').add({
                     name: name,
-                    timestamp: serverTimestamp(),
+                    timestamp: firebase.firestore.FieldValue.serverTimestamp(),
                     addedBy: 'admin'
                 });
 
                 nameInput.value = '';
                 showMessage('adminMessage', `"${name}" agregado correctamente`, 'success');
+                console.log('✅ Nombre agregado exitosamente');
             } catch (error) {
-                console.error("Error al agregar nombre:", error);
-                showMessage('adminMessage', 'Error al agregar el nombre: ' + error.message, 'error');
+                console.error('❌ Error al agregar nombre:', error);
+                showMessage('adminMessage', 'Error al agregar: ' + error.message, 'error');
             }
         }
 
@@ -473,16 +464,16 @@
             }
 
             try {
+                console.log('🗑️ Eliminando nombre:', nameText);
                 showMessage('adminMessage', 'Eliminando nombre...', 'loading');
                 
-                const { db, doc, deleteDoc } = window.firebaseApp;
-                
-                await deleteDoc(doc(db, 'names', nameId));
+                await db.collection('names').doc(nameId).delete();
                 
                 showMessage('adminMessage', `"${nameText}" eliminado correctamente`, 'success');
+                console.log('✅ Nombre eliminado exitosamente');
             } catch (error) {
-                console.error("Error al eliminar nombre:", error);
-                showMessage('adminMessage', 'Error al eliminar el nombre: ' + error.message, 'error');
+                console.error('❌ Error al eliminar nombre:', error);
+                showMessage('adminMessage', 'Error al eliminar: ' + error.message, 'error');
             }
         }
 
@@ -546,6 +537,9 @@
                 unsubscribe();
             }
         });
+
+        // Log inicial para debugging
+        console.log('🚀 Script cargado, esperando inicialización...');
     </script>
 </body>
 </html>
