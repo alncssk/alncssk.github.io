@@ -275,20 +275,13 @@
     </div>
 
     <script>
-        // Configuración
         const ADMIN_PASSWORD = "admin123"; // Cambia esta contraseña por una más segura
-        
-        // Estado de la aplicación
         let isAdminLoggedIn = false;
         let names = [];
-
-        // Cargar datos al iniciar
         window.onload = function() {
             loadNames();
             updateDisplay();
         };
-
-        // Función de login
         function login() {
             const password = document.getElementById('adminPassword').value;
             const messageDiv = document.getElementById('loginMessage');
@@ -303,8 +296,6 @@
                 showMessage('loginMessage', 'Contraseña incorrecta', 'error');
             }
         }
-
-        // Función de logout
         function logout() {
             isAdminLoggedIn = false;
             document.getElementById('loginSection').style.display = 'block';
@@ -312,8 +303,6 @@
             document.getElementById('adminPassword').value = '';
             document.getElementById('nameInput').value = '';
         }
-
-        // Función para agregar nombre
         function addName() {
             if (!isAdminLoggedIn) {
                 showMessage('adminMessage', 'No tienes permisos de administrador', 'error');
@@ -339,8 +328,6 @@
             nameInput.value = '';
             showMessage('adminMessage', `"${name}" agregado correctamente`, 'success');
         }
-
-        // Función para eliminar nombre
         function removeName(name) {
             if (!isAdminLoggedIn) {
                 return;
@@ -354,8 +341,6 @@
                 showMessage('adminMessage', `"${name}" eliminado correctamente`, 'success');
             }
         }
-
-        // Función para actualizar la visualización
         function updateDisplay() {
             const nameListDiv = document.getElementById('nameList');
             
@@ -376,8 +361,6 @@
             
             nameListDiv.innerHTML = html;
         }
-
-        // Función para mostrar mensajes
         function showMessage(elementId, message, type) {
             const element = document.getElementById(elementId);
             element.innerHTML = `<div class="status-message ${type}">${message}</div>`;
@@ -386,15 +369,11 @@
                 element.innerHTML = '';
             }, 3000);
         }
-
-        // Función para escapar HTML
         function escapeHtml(text) {
             const div = document.createElement('div');
             div.textContent = text;
             return div.innerHTML;
         }
-
-        // Funciones de almacenamiento (simulado con variables en memoria)
         function saveNames() {
             // En un entorno real, aquí guardarías en una base de datos
             // Por ahora solo mantenemos los datos en memoria durante la sesión
@@ -405,8 +384,6 @@
             // Por ahora iniciamos con una lista vacía
             names = [];
         }
-
-        // Permitir agregar nombres con Enter
         document.addEventListener('DOMContentLoaded', function() {
             document.getElementById('adminPassword').addEventListener('keypress', function(e) {
                 if (e.key === 'Enter') {
