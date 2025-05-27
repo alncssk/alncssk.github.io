@@ -278,10 +278,13 @@
         const ADMIN_PASSWORD = "admin123"; // Cambia esta contraseña por una más segura
         let isAdminLoggedIn = false;
         let names = [];
+
+        // Al cargar la página
         window.onload = function() {
             loadNames();
             updateDisplay();
         };
+
         function login() {
             const password = document.getElementById('adminPassword').value;
             const messageDiv = document.getElementById('loginMessage');
@@ -296,6 +299,7 @@
                 showMessage('loginMessage', 'Contraseña incorrecta', 'error');
             }
         }
+
         function logout() {
             isAdminLoggedIn = false;
             document.getElementById('loginSection').style.display = 'block';
@@ -303,6 +307,7 @@
             document.getElementById('adminPassword').value = '';
             document.getElementById('nameInput').value = '';
         }
+
         function addName() {
             if (!isAdminLoggedIn) {
                 showMessage('adminMessage', 'No tienes permisos de administrador', 'error');
@@ -323,11 +328,12 @@
             }
 
             names.push(name);
-            saveNames();
+            saveNames(); // Guarda en localStorage
             updateDisplay();
             nameInput.value = '';
             showMessage('adminMessage', `"${name}" agregado correctamente`, 'success');
         }
+
         function removeName(name) {
             if (!isAdminLoggedIn) {
                 return;
@@ -336,11 +342,12 @@
             const index = names.indexOf(name);
             if (index > -1) {
                 names.splice(index, 1);
-                saveNames();
+                saveNames(); // Guarda en localStorage
                 updateDisplay();
                 showMessage('adminMessage', `"${name}" eliminado correctamente`, 'success');
             }
         }
+
         function updateDisplay() {
             const nameListDiv = document.getElementById('nameList');
             
@@ -361,6 +368,7 @@
             
             nameListDiv.innerHTML = html;
         }
+
         function showMessage(elementId, message, type) {
             const element = document.getElementById(elementId);
             element.innerHTML = `<div class="status-message ${type}">${message}</div>`;
@@ -369,21 +377,40 @@
                 element.innerHTML = '';
             }, 3000);
         }
+
         function escapeHtml(text) {
             const div = document.createElement('div');
             div.textContent = text;
             return div.innerHTML;
         }
+
+        // NUEVAS FUNCIONES PARA LOCALSTORAGE
         function saveNames() {
-            // En un entorno real, aquí guardarías en una base de datos
-            // Por ahora solo mantenemos los datos en memoria durante la sesión
+            try {
+                localStorage.setItem('namesList', JSON.stringify(names));
+                console.log('Nombres guardados en localStorage:', names);
+            } catch (error) {
+                console.error('Error al guardar en localStorage:', error);
+            }
         }
 
         function loadNames() {
-            // En un entorno real, aquí cargarías desde una base de datos
-            // Por ahora iniciamos con una lista vacía
-            names = [];
+            try {
+                const savedNames = localStorage.getItem('namesList');
+                if (savedNames) {
+                    names = JSON.parse(savedNames);
+                    console.log('Nombres cargados desde localStorage:', names);
+                } else {
+                    names = [];
+                    console.log('No hay nombres guardados, iniciando lista vacía');
+                }
+            } catch (error) {
+                console.error('Error al cargar desde localStorage:', error);
+                names = []; // Si hay error, inicia con lista vacía
+            }
         }
+
+        // Event listeners para Enter
         document.addEventListener('DOMContentLoaded', function() {
             document.getElementById('adminPassword').addEventListener('keypress', function(e) {
                 if (e.key === 'Enter') {
