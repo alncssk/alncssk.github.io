@@ -5,10 +5,32 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Lista de Nombres</title>
     
-    <!-- Firebase SDK -->
-    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+    <!-- Firebase SDK v11 (Modular) -->
+    <script type="module">
+        // Import Firebase modules
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.8.1/firebase-app.js";
+        import { getFirestore, collection, addDoc, deleteDoc, doc, onSnapshot, orderBy, query, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.8.1/firebase-firestore.js";
+        import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.8.1/firebase-auth.js";
+
+        // Firebase configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyBKItCLTReTU0tmm3lHSOKPMS5TEtv6dT0",
+            authDomain: "gbaddalbion.firebaseapp.com",
+            projectId: "gbaddalbion",
+            storageBucket: "gbaddalbion.firebasestorage.app",
+            messagingSenderId: "656297370009",
+            appId: "1:656297370009:web:a871f5435583b06792b308",
+            measurementId: "G-M0SCQ3KFY4"
+        };
+
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+        const auth = getAuth(app);
+
+        // Make Firebase available globally
+        window.firebaseApp = { app, db, auth, addDoc, deleteDoc, doc, collection, onSnapshot, orderBy, query, serverTimestamp, signInAnonymously };
+    </script>
     
     <style>
         * {
@@ -311,46 +333,33 @@
     </div>
 
     <script>
-        // ⚠️ CAMBIA ESTA CONFIGURACIÓN POR LA TUYA DE FIREBASE
-// Import the functions you need from the SDKs you need
-import { initializeApp } from "firebase/app";
-import { getAnalytics } from "firebase/analytics";
-// TODO: Add SDKs for Firebase products that you want to use
-// https://firebase.google.com/docs/web/setup#available-libraries
-
-// Your web app's Firebase configuration
-// For Firebase JS SDK v7.20.0 and later, measurementId is optional
-const firebaseConfig = {
-  apiKey: "AIzaSyBKItCLTReTU0tmm3lHSOKPMS5TEtv6dT0",
-  authDomain: "gbaddalbion.firebaseapp.com",
-  projectId: "gbaddalbion",
-  storageBucket: "gbaddalbion.firebasestorage.app",
-  messagingSenderId: "656297370009",
-  appId: "1:656297370009:web:a871f5435583b06792b308",
-  measurementId: "G-M0SCQ3KFY4"
-};
-
-// Initialize Firebase
-const app = initializeApp(firebaseConfig);
-const analytics = getAnalytics(app);
-
         // Variables globales
-        const ADMIN_PASSWORD = "admin123";
+        const ADMIN_PASSWORD = "admin123"; // Cambia esta contraseña
         let isAdminLoggedIn = false;
         let names = [];
         let unsubscribe = null;
 
-        // Inicializar la aplicación
-        window.onload = function() {
-            initializeAuth();
-            setupRealtimeListener();
-        };
+        // Esperar a que Firebase esté disponible
+        window.addEventListener('load', function() {
+            setTimeout(() => {
+                if (window.firebaseApp) {
+                    initializeAuth();
+                    setupRealtimeListener();
+                } else {
+                    console.error('Firebase no se cargó correctamente');
+                    updateFirebaseStatus(false);
+                }
+            }, 1000);
+        });
 
         // ============= AUTENTICACIÓN =============
         function initializeAuth() {
-            auth.signInAnonymously()
+            const { auth, signInAnonymously } = window.firebaseApp;
+            
+            signInAnonymously(auth)
                 .then(() => {
                     updateFirebaseStatus(true);
+                    console.log('Autenticado correctamente con Firebase');
                 })
                 .catch((error) => {
                     console.error("Error en autenticación:", error);
@@ -371,22 +380,25 @@ const analytics = getAnalytics(app);
 
         // ============= FIRESTORE EN TIEMPO REAL =============
         function setupRealtimeListener() {
-            unsubscribe = db.collection('names')
-                .orderBy('timestamp', 'asc')
-                .onSnapshot((snapshot) => {
-                    names = [];
-                    snapshot.forEach((doc) => {
-                        names.push({
-                            id: doc.id,
-                            name: doc.data().name,
-                            timestamp: doc.data().timestamp
-                        });
+            const { db, collection, onSnapshot, orderBy, query } = window.firebaseApp;
+            
+            const namesQuery = query(collection(db, 'names'), orderBy('timestamp', 'asc'));
+            
+            unsubscribe = onSnapshot(namesQuery, (snapshot) => {
+                names = [];
+                snapshot.forEach((doc) => {
+                    names.push({
+                        id: doc.id,
+                        name: doc.data().name,
+                        timestamp: doc.data().timestamp
                     });
-                    updateDisplay();
-                }, (error) => {
-                    console.error("Error al escuchar cambios:", error);
-                    showMessage('adminMessage', 'Error de conexión con la base de datos', 'error');
                 });
+                updateDisplay();
+                console.log('Nombres actualizados:', names.length);
+            }, (error) => {
+                console.error("Error al escuchar cambios:", error);
+                showMessage('adminMessage', 'Error de conexión con la base de datos', 'error');
+            });
         }
 
         // ============= FUNCIONES DE ADMIN =============
@@ -439,9 +451,11 @@ const analytics = getAnalytics(app);
             try {
                 showMessage('adminMessage', 'Agregando nombre...', 'loading');
                 
-                await db.collection('names').add({
+                const { db, collection, addDoc, serverTimestamp } = window.firebaseApp;
+                
+                await addDoc(collection(db, 'names'), {
                     name: name,
-                    timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+                    timestamp: serverTimestamp(),
                     addedBy: 'admin'
                 });
 
@@ -449,7 +463,7 @@ const analytics = getAnalytics(app);
                 showMessage('adminMessage', `"${name}" agregado correctamente`, 'success');
             } catch (error) {
                 console.error("Error al agregar nombre:", error);
-                showMessage('adminMessage', 'Error al agregar el nombre', 'error');
+                showMessage('adminMessage', 'Error al agregar el nombre: ' + error.message, 'error');
             }
         }
 
@@ -461,12 +475,14 @@ const analytics = getAnalytics(app);
             try {
                 showMessage('adminMessage', 'Eliminando nombre...', 'loading');
                 
-                await db.collection('names').doc(nameId).delete();
+                const { db, doc, deleteDoc } = window.firebaseApp;
+                
+                await deleteDoc(doc(db, 'names', nameId));
                 
                 showMessage('adminMessage', `"${nameText}" eliminado correctamente`, 'success');
             } catch (error) {
                 console.error("Error al eliminar nombre:", error);
-                showMessage('adminMessage', 'Error al eliminar el nombre', 'error');
+                showMessage('adminMessage', 'Error al eliminar el nombre: ' + error.message, 'error');
             }
         }
 
