@@ -4,6 +4,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Lista de Nombres</title>
+    
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+    
     <style>
         * {
             margin: 0;
@@ -192,10 +198,35 @@
             border: 1px solid #f5c6cb;
         }
 
+        .loading {
+            background: #cce7ff;
+            color: #004085;
+            border: 1px solid #b3d9ff;
+        }
+
         .admin-controls {
             display: flex;
             gap: 10px;
             margin-bottom: 20px;
+        }
+
+        .firebase-status {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            padding: 8px 12px;
+            border-radius: 5px;
+            color: white;
+            font-size: 12px;
+            font-weight: bold;
+        }
+
+        .firebase-connected {
+            background: #28a745;
+        }
+
+        .firebase-disconnected {
+            background: #dc3545;
         }
 
         @media (max-width: 600px) {
@@ -229,10 +260,15 @@
     </style>
 </head>
 <body>
+    <!-- Indicador de estado de Firebase -->
+    <div id="firebaseStatus" class="firebase-status firebase-disconnected">
+        🔄 Conectando...
+    </div>
+
     <div class="container">
         <div class="header">
             <h1>📝 Lista de Nombres</h1>
-            <p>Gestión pública de nombres con acceso administrativo</p>
+            <p>Gestión pública de nombres con base de datos en tiempo real</p>
         </div>
         
         <div class="content">
@@ -267,7 +303,7 @@
                 <h2>👥 Lista Pública de Nombres</h2>
                 <div id="nameList" class="name-list">
                     <div class="empty-state">
-                        No hay nombres en la lista aún
+                        🔄 Cargando nombres...
                     </div>
                 </div>
             </div>
@@ -275,25 +311,86 @@
     </div>
 
     <script>
-        const ADMIN_PASSWORD = "admin123"; // Cambia esta contraseña por una más segura
-        let isAdminLoggedIn = false;
-        let names = [];
-
-        // Al cargar la página
-        window.onload = function() {
-            loadNames();
-            updateDisplay();
+        // ⚠️ CAMBIA ESTA CONFIGURACIÓN POR LA TUYA DE FIREBASE
+        const firebaseConfig = {
+            apiKey: "AIzaSyBKItCLTReTU0tmm3lHSOKPMS5TEtv6dT0",
+  authDomain: "gbaddalbion.firebaseapp.com",
+  projectId: "gbaddalbion",
+  storageBucket: "gbaddalbion.firebasestorage.app",
+  messagingSenderId: "656297370009",
+  appId: "1:656297370009:web:a871f5435583b06792b308",
+  measurementId: "G-M0SCQ3KFY4"
         };
 
+        // Inicializar Firebase
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+        const auth = firebase.auth();
+
+        // Variables globales
+        const ADMIN_PASSWORD = "admin123";
+        let isAdminLoggedIn = false;
+        let names = [];
+        let unsubscribe = null;
+
+        // Inicializar la aplicación
+        window.onload = function() {
+            initializeAuth();
+            setupRealtimeListener();
+        };
+
+        // ============= AUTENTICACIÓN =============
+        function initializeAuth() {
+            auth.signInAnonymously()
+                .then(() => {
+                    updateFirebaseStatus(true);
+                })
+                .catch((error) => {
+                    console.error("Error en autenticación:", error);
+                    updateFirebaseStatus(false);
+                });
+        }
+
+        function updateFirebaseStatus(connected) {
+            const statusEl = document.getElementById('firebaseStatus');
+            if (connected) {
+                statusEl.textContent = '🟢 Conectado';
+                statusEl.className = 'firebase-status firebase-connected';
+            } else {
+                statusEl.textContent = '🔴 Sin conexión';
+                statusEl.className = 'firebase-status firebase-disconnected';
+            }
+        }
+
+        // ============= FIRESTORE EN TIEMPO REAL =============
+        function setupRealtimeListener() {
+            unsubscribe = db.collection('names')
+                .orderBy('timestamp', 'asc')
+                .onSnapshot((snapshot) => {
+                    names = [];
+                    snapshot.forEach((doc) => {
+                        names.push({
+                            id: doc.id,
+                            name: doc.data().name,
+                            timestamp: doc.data().timestamp
+                        });
+                    });
+                    updateDisplay();
+                }, (error) => {
+                    console.error("Error al escuchar cambios:", error);
+                    showMessage('adminMessage', 'Error de conexión con la base de datos', 'error');
+                });
+        }
+
+        // ============= FUNCIONES DE ADMIN =============
         function login() {
             const password = document.getElementById('adminPassword').value;
-            const messageDiv = document.getElementById('loginMessage');
             
             if (password === ADMIN_PASSWORD) {
                 isAdminLoggedIn = true;
                 document.getElementById('loginSection').style.display = 'none';
                 document.getElementById('adminSection').style.display = 'block';
-                updateDisplay(); // Actualiza la vista para mostrar botones de eliminar
+                updateDisplay();
                 showMessage('loginMessage', 'Acceso concedido correctamente', 'success');
                 document.getElementById('adminPassword').value = '';
             } else {
@@ -307,10 +404,11 @@
             document.getElementById('adminSection').style.display = 'none';
             document.getElementById('adminPassword').value = '';
             document.getElementById('nameInput').value = '';
-            updateDisplay(); // Actualiza la vista para ocultar botones de eliminar
+            updateDisplay();
         }
 
-        function addName() {
+        // ============= CRUD OPERATIONS =============
+        async function addName() {
             if (!isAdminLoggedIn) {
                 showMessage('adminMessage', 'No tienes permisos de administrador', 'error');
                 return;
@@ -324,32 +422,48 @@
                 return;
             }
 
-            if (names.includes(name)) {
+            // Verificar si ya existe
+            const existingName = names.find(n => n.name.toLowerCase() === name.toLowerCase());
+            if (existingName) {
                 showMessage('adminMessage', 'Este nombre ya existe en la lista', 'error');
                 return;
             }
 
-            names.push(name);
-            saveNames(); // Guarda en localStorage
-            updateDisplay();
-            nameInput.value = '';
-            showMessage('adminMessage', `"${name}" agregado correctamente`, 'success');
+            try {
+                showMessage('adminMessage', 'Agregando nombre...', 'loading');
+                
+                await db.collection('names').add({
+                    name: name,
+                    timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+                    addedBy: 'admin'
+                });
+
+                nameInput.value = '';
+                showMessage('adminMessage', `"${name}" agregado correctamente`, 'success');
+            } catch (error) {
+                console.error("Error al agregar nombre:", error);
+                showMessage('adminMessage', 'Error al agregar el nombre', 'error');
+            }
         }
 
-        function removeName(name) {
+        async function removeName(nameId, nameText) {
             if (!isAdminLoggedIn) {
                 return;
             }
 
-            const index = names.indexOf(name);
-            if (index > -1) {
-                names.splice(index, 1);
-                saveNames(); // Guarda en localStorage
-                updateDisplay();
-                showMessage('adminMessage', `"${name}" eliminado correctamente`, 'success');
+            try {
+                showMessage('adminMessage', 'Eliminando nombre...', 'loading');
+                
+                await db.collection('names').doc(nameId).delete();
+                
+                showMessage('adminMessage', `"${nameText}" eliminado correctamente`, 'success');
+            } catch (error) {
+                console.error("Error al eliminar nombre:", error);
+                showMessage('adminMessage', 'Error al eliminar el nombre', 'error');
             }
         }
 
+        // ============= UI FUNCTIONS =============
         function updateDisplay() {
             const nameListDiv = document.getElementById('nameList');
             
@@ -359,11 +473,11 @@
             }
 
             let html = '';
-            names.forEach(name => {
+            names.forEach(nameObj => {
                 html += `
                     <div class="name-item">
-                        <span class="name-text">${escapeHtml(name)}</span>
-                        ${isAdminLoggedIn ? `<button class="btn btn-danger" onclick="removeName('${escapeHtml(name)}')">🗑️ Eliminar</button>` : ''}
+                        <span class="name-text">${escapeHtml(nameObj.name)}</span>
+                        ${isAdminLoggedIn ? `<button class="btn btn-danger" onclick="removeName('${nameObj.id}', '${escapeHtml(nameObj.name)}')">🗑️ Eliminar</button>` : ''}
                     </div>
                 `;
             });
@@ -375,9 +489,11 @@
             const element = document.getElementById(elementId);
             element.innerHTML = `<div class="status-message ${type}">${message}</div>`;
             
-            setTimeout(() => {
-                element.innerHTML = '';
-            }, 3000);
+            if (type !== 'loading') {
+                setTimeout(() => {
+                    element.innerHTML = '';
+                }, 3000);
+            }
         }
 
         function escapeHtml(text) {
@@ -386,33 +502,7 @@
             return div.innerHTML;
         }
 
-        // NUEVAS FUNCIONES PARA LOCALSTORAGE
-        function saveNames() {
-            try {
-                localStorage.setItem('namesList', JSON.stringify(names));
-                console.log('Nombres guardados en localStorage:', names);
-            } catch (error) {
-                console.error('Error al guardar en localStorage:', error);
-            }
-        }
-
-        function loadNames() {
-            try {
-                const savedNames = localStorage.getItem('namesList');
-                if (savedNames) {
-                    names = JSON.parse(savedNames);
-                    console.log('Nombres cargados desde localStorage:', names);
-                } else {
-                    names = [];
-                    console.log('No hay nombres guardados, iniciando lista vacía');
-                }
-            } catch (error) {
-                console.error('Error al cargar desde localStorage:', error);
-                names = []; // Si hay error, inicia con lista vacía
-            }
-        }
-
-        // Event listeners para Enter
+        // ============= EVENT LISTENERS =============
         document.addEventListener('DOMContentLoaded', function() {
             document.getElementById('adminPassword').addEventListener('keypress', function(e) {
                 if (e.key === 'Enter') {
@@ -425,6 +515,13 @@
                     addName();
                 }
             });
+        });
+
+        // Limpiar listener al cerrar la página
+        window.addEventListener('beforeunload', () => {
+            if (unsubscribe) {
+                unsubscribe();
+            }
         });
     </script>
 </body>
