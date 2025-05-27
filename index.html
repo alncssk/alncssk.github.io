@@ -293,6 +293,7 @@
                 isAdminLoggedIn = true;
                 document.getElementById('loginSection').style.display = 'none';
                 document.getElementById('adminSection').style.display = 'block';
+                updateDisplay(); // Actualiza la vista para mostrar botones de eliminar
                 showMessage('loginMessage', 'Acceso concedido correctamente', 'success');
                 document.getElementById('adminPassword').value = '';
             } else {
@@ -306,6 +307,7 @@
             document.getElementById('adminSection').style.display = 'none';
             document.getElementById('adminPassword').value = '';
             document.getElementById('nameInput').value = '';
+            updateDisplay(); // Actualiza la vista para ocultar botones de eliminar
         }
 
         function addName() {
