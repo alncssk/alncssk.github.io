@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lista de Nombres</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .content {
+            padding: 30px;
+        }
+
+        .login-section {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 30px;
+            border-left: 4px solid #007bff;
+        }
+
+        .public-section {
+            background: #e8f5e8;
+            padding: 20px;
+            border-radius: 10px;
+            border-left: 4px solid #28a745;
+        }
+
+        .admin-section {
+            background: #fff3cd;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 30px;
+            border-left: 4px solid #ffc107;
+            display: none;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: bold;
+            color: #333;
+        }
+
+        input[type="text"], input[type="password"] {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.3s ease;
+        }
+
+        input[type="text"]:focus, input[type="password"]:focus {
+            outline: none;
+            border-color: #007bff;
+            box-shadow: 0 0 0 3px rgba(0,123,255,0.1);
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #007bff, #0056b3);
+            color: white;
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, #28a745, #1e7e34);
+            color: white;
+        }
+
+        .btn-danger {
+            background: linear-gradient(135deg, #dc3545, #bd2130);
+            color: white;
+            font-size: 14px;
+            padding: 8px 16px;
+            margin-left: 10px;
+        }
+
+        .btn-warning {
+            background: linear-gradient(135deg, #ffc107, #e0a800);
+            color: #212529;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        .name-list {
+            margin-top: 20px;
+        }
+
+        .name-item {
+            background: white;
+            padding: 15px;
+            margin-bottom: 10px;
+            border-radius: 8px;
+            border: 1px solid #ddd;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: all 0.3s ease;
+        }
+
+        .name-item:hover {
+            box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+            transform: translateY(-1px);
+        }
+
+        .name-text {
+            font-size: 18px;
+            font-weight: 500;
+            color: #333;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+            font-style: italic;
+        }
+
+        .status-message {
+            padding: 10px;
+            border-radius: 5px;
+            margin-bottom: 15px;
+            text-align: center;
+            font-weight: bold;
+        }
+
+        .success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .admin-controls {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        @media (max-width: 600px) {
+            .container {
+                margin: 10px;
+                border-radius: 10px;
+            }
+            
+            .header {
+                padding: 20px;
+            }
+            
+            .header h1 {
+                font-size: 2em;
+            }
+            
+            .content {
+                padding: 20px;
+            }
+            
+            .admin-controls {
+                flex-direction: column;
+            }
+            
+            .name-item {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📝 Lista de Nombres</h1>
+            <p>Gestión pública de nombres con acceso administrativo</p>
+        </div>
+        
+        <div class="content">
+            <!-- Sección de Login -->
+            <div class="login-section" id="loginSection">
+                <h2>🔐 Acceso Administrativo</h2>
+                <div class="form-group">
+                    <label for="adminPassword">Contraseña de Administrador:</label>
+                    <input type="password" id="adminPassword" placeholder="Ingresa la contraseña">
+                </div>
+                <button class="btn btn-primary" onclick="login()">Iniciar Sesión</button>
+                <div id="loginMessage"></div>
+            </div>
+
+            <!-- Sección de Administración -->
+            <div class="admin-section" id="adminSection">
+                <h2>⚙️ Panel de Administración</h2>
+                <div class="admin-controls">
+                    <button class="btn btn-warning" onclick="logout()">Cerrar Sesión</button>
+                </div>
+                
+                <div class="form-group">
+                    <label for="nameInput">Agregar Nuevo Nombre:</label>
+                    <input type="text" id="nameInput" placeholder="Escribe un nombre aquí">
+                </div>
+                <button class="btn btn-success" onclick="addName()">➕ Agregar a la Lista</button>
+                <div id="adminMessage"></div>
+            </div>
+
+            <!-- Sección Pública -->
+            <div class="public-section">
+                <h2>👥 Lista Pública de Nombres</h2>
+                <div id="nameList" class="name-list">
+                    <div class="empty-state">
+                        No hay nombres en la lista aún
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Configuración
+        const ADMIN_PASSWORD = "admin123"; // Cambia esta contraseña por una más segura
+        
+        // Estado de la aplicación
+        let isAdminLoggedIn = false;
+        let names = [];
+
+        // Cargar datos al iniciar
+        window.onload = function() {
+            loadNames();
+            updateDisplay();
+        };
+
+        // Función de login
+        function login() {
+            const password = document.getElementById('adminPassword').value;
+            const messageDiv = document.getElementById('loginMessage');
+            
+            if (password === ADMIN_PASSWORD) {
+                isAdminLoggedIn = true;
+                document.getElementById('loginSection').style.display = 'none';
+                document.getElementById('adminSection').style.display = 'block';
+                showMessage('loginMessage', 'Acceso concedido correctamente', 'success');
+                document.getElementById('adminPassword').value = '';
+            } else {
+                showMessage('loginMessage', 'Contraseña incorrecta', 'error');
+            }
+        }
+
+        // Función de logout
+        function logout() {
+            isAdminLoggedIn = false;
+            document.getElementById('loginSection').style.display = 'block';
+            document.getElementById('adminSection').style.display = 'none';
+            document.getElementById('adminPassword').value = '';
+            document.getElementById('nameInput').value = '';
+        }
+
+        // Función para agregar nombre
+        function addName() {
+            if (!isAdminLoggedIn) {
+                showMessage('adminMessage', 'No tienes permisos de administrador', 'error');
+                return;
+            }
+
+            const nameInput = document.getElementById('nameInput');
+            const name = nameInput.value.trim();
+            
+            if (name === '') {
+                showMessage('adminMessage', 'Por favor ingresa un nombre', 'error');
+                return;
+            }
+
+            if (names.includes(name)) {
+                showMessage('adminMessage', 'Este nombre ya existe en la lista', 'error');
+                return;
+            }
+
+            names.push(name);
+            saveNames();
+            updateDisplay();
+            nameInput.value = '';
+            showMessage('adminMessage', `"${name}" agregado correctamente`, 'success');
+        }
+
+        // Función para eliminar nombre
+        function removeName(name) {
+            if (!isAdminLoggedIn) {
+                return;
+            }
+
+            const index = names.indexOf(name);
+            if (index > -1) {
+                names.splice(index, 1);
+                saveNames();
+                updateDisplay();
+                showMessage('adminMessage', `"${name}" eliminado correctamente`, 'success');
+            }
+        }
+
+        // Función para actualizar la visualización
+        function updateDisplay() {
+            const nameListDiv = document.getElementById('nameList');
+            
+            if (names.length === 0) {
+                nameListDiv.innerHTML = '<div class="empty-state">No hay nombres en la lista aún</div>';
+                return;
+            }
+
+            let html = '';
+            names.forEach(name => {
+                html += `
+                    <div class="name-item">
+                        <span class="name-text">${escapeHtml(name)}</span>
+                        ${isAdminLoggedIn ? `<button class="btn btn-danger" onclick="removeName('${escapeHtml(name)}')">🗑️ Eliminar</button>` : ''}
+                    </div>
+                `;
+            });
+            
+            nameListDiv.innerHTML = html;
+        }
+
+        // Función para mostrar mensajes
+        function showMessage(elementId, message, type) {
+            const element = document.getElementById(elementId);
+            element.innerHTML = `<div class="status-message ${type}">${message}</div>`;
+            
+            setTimeout(() => {
+                element.innerHTML = '';
+            }, 3000);
+        }
+
+        // Función para escapar HTML
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // Funciones de almacenamiento (simulado con variables en memoria)
+        function saveNames() {
+            // En un entorno real, aquí guardarías en una base de datos
+            // Por ahora solo mantenemos los datos en memoria durante la sesión
+        }
+
+        function loadNames() {
+            // En un entorno real, aquí cargarías desde una base de datos
+            // Por ahora iniciamos con una lista vacía
+            names = [];
+        }
+
+        // Permitir agregar nombres con Enter
+        document.addEventListener('DOMContentLoaded', function() {
+            document.getElementById('adminPassword').addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    login();
+                }
+            });
+
+            document.getElementById('nameInput').addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    addName();
+                }
+            });
+        });
+    </script>
+</body>
+</html>
