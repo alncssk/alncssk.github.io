@@ -369,24 +369,68 @@
         function setupRealtimeListener() {
             console.log('Configurando listener en tiempo real...');
             
+            // Primero intentar crear la colección si no existe
+            db.collection('names').get()
+                .then((snapshot) => {
+                    console.log('✅ Colección accesible, documentos:', snapshot.size);
+                })
+                .catch((error) => {
+                    console.log('⚠️ Error accediendo colección:', error);
+                });
+            
             unsubscribe = db.collection('names')
                 .orderBy('timestamp', 'asc')
                 .onSnapshot((snapshot) => {
                     console.log('📡 Datos recibidos desde Firestore');
                     names = [];
+                    const now = new Date();
+                    const expiredNames = []; // Para eliminar nombres vencidos
+                    
                     snapshot.forEach((doc) => {
-                        names.push({
-                            id: doc.id,
-                            name: doc.data().name,
-                            timestamp: doc.data().timestamp
-                        });
+                        const data = doc.data();
+                        const nameTimestamp = data.timestamp ? data.timestamp.toDate() : new Date();
+                        const hoursSinceAdded = (now - nameTimestamp) / (1000 * 60 * 60);
+                        
+                        if (hoursSinceAdded >= 24) {
+                            // Nombre expirado, marcarlo para eliminación
+                            expiredNames.push({id: doc.id, name: data.name});
+                            console.log(`⏰ Nombre "${data.name}" expirado (${Math.round(hoursSinceAdded)} horas)`);
+                        } else {
+                            // Nombre válido, agregarlo a la lista
+                            names.push({
+                                id: doc.id,
+                                name: data.name,
+                                timestamp: data.timestamp,
+                                hoursLeft: Math.round(24 - hoursSinceAdded)
+                            });
+                        }
                     });
-                    console.log('Total nombres:', names.length);
+                    
+                    // Eliminar nombres expirados automáticamente
+                    expiredNames.forEach(expiredName => {
+                        deleteExpiredName(expiredName.id, expiredName.name);
+                    });
+                    
+                    console.log('Total nombres válidos:', names.length);
+                    console.log('Nombres expirados eliminados:', expiredNames.length);
                     updateDisplay();
                 }, (error) => {
                     console.error('❌ Error al escuchar cambios:', error);
+                    console.error('Error code:', error.code);
+                    console.error('Error message:', error.message);
                     showMessage('adminMessage', 'Error de conexión: ' + error.message, 'error');
                 });
+        }
+
+        // Función para eliminar nombres expirados
+        async function deleteExpiredName(nameId, nameText) {
+            try {
+                await db.collection('names').doc(nameId).delete();
+                console.log(`🗑️ Eliminado automáticamente: "${nameText}"`);
+            } catch (error) {
+                console.error('❌ Error al eliminar nombre expirado:', error);
+            }
+        }
         }
 
         // ============= FUNCIONES DE ADMIN =============
@@ -488,9 +532,13 @@
 
             let html = '';
             names.forEach(nameObj => {
+                const timeInfo = nameObj.hoursLeft ? `<small style="color: #666; font-size: 12px;">(${nameObj.hoursLeft}h restantes)</small>` : '';
                 html += `
                     <div class="name-item">
-                        <span class="name-text">${escapeHtml(nameObj.name)}</span>
+                        <div>
+                            <span class="name-text">${escapeHtml(nameObj.name)}</span>
+                            ${timeInfo}
+                        </div>
                         ${isAdminLoggedIn ? `<button class="btn btn-danger" onclick="removeName('${nameObj.id}', '${escapeHtml(nameObj.name)}')">🗑️ Eliminar</button>` : ''}
                     </div>
                 `;
