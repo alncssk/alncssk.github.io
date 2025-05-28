@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Lista de Nombres</title>
+    <title>Albion Guild - World Boss Tracker</title>
     
     <!-- Firebase SDK v9 Compat (más estable) -->
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
@@ -25,7 +25,7 @@
         }
 
         .container {
-            max-width: 800px;
+            max-width: 1000px;
             margin: 0 auto;
             background: white;
             border-radius: 15px;
@@ -74,6 +74,15 @@
             display: none;
         }
 
+        .guild-section {
+            background: #e3f2fd;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 30px;
+            border-left: 4px solid #2196f3;
+            display: none;
+        }
+
         .form-group {
             margin-bottom: 20px;
         }
@@ -110,6 +119,8 @@
             transition: all 0.3s ease;
             text-transform: uppercase;
             letter-spacing: 1px;
+            margin-right: 10px;
+            margin-bottom: 10px;
         }
 
         .btn-primary {
@@ -119,6 +130,11 @@
 
         .btn-success {
             background: linear-gradient(135deg, #28a745, #1e7e34);
+            color: white;
+        }
+
+        .btn-info {
+            background: linear-gradient(135deg, #17a2b8, #138496);
             color: white;
         }
 
@@ -133,6 +149,13 @@
         .btn-warning {
             background: linear-gradient(135deg, #ffc107, #e0a800);
             color: #212529;
+        }
+
+        .btn-secondary {
+            background: linear-gradient(135deg, #6c757d, #545b62);
+            color: white;
+            font-size: 14px;
+            padding: 8px 16px;
         }
 
         .btn:hover {
@@ -208,6 +231,7 @@
             display: flex;
             gap: 10px;
             margin-bottom: 20px;
+            flex-wrap: wrap;
         }
 
         .firebase-status {
@@ -227,6 +251,70 @@
 
         .firebase-disconnected {
             background: #dc3545;
+        }
+
+        .guild-members-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 10px;
+            margin-top: 15px;
+            max-height: 300px;
+            overflow-y: auto;
+            border: 1px solid #ddd;
+            padding: 15px;
+            border-radius: 8px;
+            background: #f8f9fa;
+        }
+
+        .guild-member-item {
+            background: white;
+            padding: 8px 12px;
+            border-radius: 5px;
+            border: 1px solid #ddd;
+            font-size: 14px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .guild-member-item:hover {
+            background: #e9ecef;
+        }
+
+        .add-member-btn {
+            background: #28a745;
+            color: white;
+            border: none;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-size: 12px;
+            cursor: pointer;
+        }
+
+        .guild-stats {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+        }
+
+        .stat-item {
+            background: #f8f9fa;
+            padding: 10px 15px;
+            border-radius: 5px;
+            border: 1px solid #ddd;
+        }
+
+        .stat-label {
+            font-size: 12px;
+            color: #666;
+            text-transform: uppercase;
+        }
+
+        .stat-value {
+            font-size: 18px;
+            font-weight: bold;
+            color: #333;
         }
 
         @media (max-width: 600px) {
@@ -256,6 +344,15 @@
                 align-items: flex-start;
                 gap: 10px;
             }
+
+            .guild-members-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .guild-stats {
+                flex-direction: column;
+                gap: 10px;
+            }
         }
     </style>
 </head>
@@ -267,8 +364,8 @@
 
     <div class="container">
         <div class="header">
-            <h1>📝 Lista de Nombres</h1>
-            <p>Gestión pública de nombres con base de datos en tiempo real</p>
+            <h1>⚔️ Albion Guild - World Boss Tracker</h1>
+            <p>Control de asistencia al World Boss - Solo quien va body tiene derecho a ir</p>
         </div>
         
         <div class="content">
@@ -288,19 +385,53 @@
                 <h2>⚙️ Panel de Administración</h2>
                 <div class="admin-controls">
                     <button class="btn btn-warning" onclick="logout()">Cerrar Sesión</button>
+                    <button class="btn btn-info" onclick="toggleGuildSection()">🏛️ Ver Miembros del Guild</button>
                 </div>
                 
                 <div class="form-group">
-                    <label for="nameInput">Agregar Nuevo Nombre:</label>
+                    <label for="nameInput">Agregar Nombre (que fue BODY al WB):</label>
                     <input type="text" id="nameInput" placeholder="Escribe un nombre aquí">
                 </div>
                 <button class="btn btn-success" onclick="addName()">➕ Agregar a la Lista</button>
                 <div id="adminMessage"></div>
             </div>
 
+            <!-- Sección de Guild -->
+            <div class="guild-section" id="guildSection">
+                <h2>🏛️ Miembros del Guild</h2>
+                <div class="admin-controls">
+                    <button class="btn btn-info" onclick="loadGuildMembers()">🔄 Actualizar Lista</button>
+                    <button class="btn btn-secondary" onclick="toggleGuildSection()">Ocultar</button>
+                </div>
+                
+                <div class="guild-stats">
+                    <div class="stat-item">
+                        <div class="stat-label">Total Miembros</div>
+                        <div class="stat-value" id="totalMembers">-</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-label">Últimos en WB</div>
+                        <div class="stat-value" id="membersInWB">-</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-label">Sin Ir (1 sem)</div>
+                        <div class="stat-value" id="membersNotInWB">-</div>
+                    </div>
+                </div>
+
+                <div id="guildMessage"></div>
+                <div id="guildMembersList" class="guild-members-grid">
+                    <div class="empty-state">Haz clic en "Actualizar Lista" para cargar los miembros del guild</div>
+                </div>
+            </div>
+
             <!-- Sección Pública -->
             <div class="public-section">
-                <h2>👥 Lista Pública de Nombres</h2>
+                <h2>👥 Miembros que fueron BODY al World Boss</h2>
+                <p style="font-size: 14px; color: #666; margin-bottom: 15px;">
+                    ⚠️ <strong>Regla:</strong> Solo aparecen aquí los que fueron <strong>BODY</strong> al WB en las últimas 24 hrs. 
+                    Si no vas body por 1 semana, no tienes derecho a ir al WB.
+                </p>
                 <div id="nameList" class="name-list">
                     <div class="empty-state">
                         🔄 Cargando nombres...
@@ -329,8 +460,12 @@
 
         // Variables globales
         const ADMIN_PASSWORD = "admin123"; // Cambia esta contraseña
+        const GUILD_ID = "yKUUaSnNR7irOoIE8TnKVg"; // Tu Guild ID
+        const ALBION_API_URL = `https://gameinfo.albiononline.com/api/gameinfo/guilds/${GUILD_ID}/members`;
+        
         let isAdminLoggedIn = false;
         let names = [];
+        let guildMembers = [];
         let unsubscribe = null;
 
         // Inicializar cuando la página carga
@@ -414,6 +549,7 @@
                     console.log('Total nombres válidos:', names.length);
                     console.log('Nombres expirados eliminados:', expiredNames.length);
                     updateDisplay();
+                    updateGuildStats(); // Actualizar estadísticas
                 }, (error) => {
                     console.error('❌ Error al escuchar cambios:', error);
                     console.error('Error code:', error.code);
@@ -431,7 +567,130 @@
                 console.error('❌ Error al eliminar nombre expirado:', error);
             }
         }
-        // Eliminar la llave de cierre extra que estaba aquí
+
+        // ============= FUNCIONES DE GUILD API =============
+        async function loadGuildMembers() {
+            showMessage('guildMessage', 'Cargando miembros del guild...', 'loading');
+            
+            try {
+                console.log('🔄 Obteniendo miembros del guild desde API...');
+                
+                const response = await fetch(ALBION_API_URL);
+                
+                if (!response.ok) {
+                    throw new Error(`Error HTTP: ${response.status}`);
+                }
+                
+                const members = await response.json();
+                console.log('✅ Miembros obtenidos:', members.length);
+                
+                guildMembers = members.map(member => ({
+                    id: member.Id,
+                    name: member.Name,
+                    guildRank: member.GuildRank || 'Miembro',
+                    killFame: member.KillFame || 0,
+                    deathFame: member.DeathFame || 0
+                }));
+                
+                displayGuildMembers();
+                updateGuildStats();
+                showMessage('guildMessage', `${members.length} miembros cargados correctamente`, 'success');
+                
+            } catch (error) {
+                console.error('❌ Error al obtener miembros del guild:', error);
+                showMessage('guildMessage', 'Error al cargar miembros: ' + error.message, 'error');
+            }
+        }
+
+        function displayGuildMembers() {
+            const guildList = document.getElementById('guildMembersList');
+            
+            if (guildMembers.length === 0) {
+                guildList.innerHTML = '<div class="empty-state">No se pudieron cargar los miembros del guild</div>';
+                return;
+            }
+
+            // Ordenar por nombre
+            const sortedMembers = [...guildMembers].sort((a, b) => a.name.localeCompare(b.name));
+            
+            let html = '';
+            sortedMembers.forEach(member => {
+                // Verificar si el miembro está en la lista de WB
+                const isInWB = names.some(nameObj => nameObj.name.toLowerCase() === member.name.toLowerCase());
+                const statusIcon = isInWB ? '✅' : '❌';
+                const statusClass = isInWB ? 'style="color: #28a745;"' : 'style="color: #dc3545;"';
+                
+                html += `
+                    <div class="guild-member-item">
+                        <span ${statusClass}>${statusIcon} ${escapeHtml(member.name)}</span>
+                        ${isAdminLoggedIn && !isInWB ? `<button class="add-member-btn" onclick="addMemberToWB('${escapeHtml(member.name)}')">+ WB</button>` : ''}
+                    </div>
+                `;
+            });
+            
+            guildList.innerHTML = html;
+        }
+
+        function updateGuildStats() {
+            const totalMembersEl = document.getElementById('totalMembers');
+            const membersInWBEl = document.getElementById('membersInWB');
+            const membersNotInWBEl = document.getElementById('membersNotInWB');
+            
+            const totalMembers = guildMembers.length;
+            const membersInWB = guildMembers.filter(member => 
+                names.some(nameObj => nameObj.name.toLowerCase() === member.name.toLowerCase())
+            ).length;
+            const membersNotInWB = totalMembers - membersInWB;
+            
+            totalMembersEl.textContent = totalMembers || '-';
+            membersInWBEl.textContent = membersInWB || '0';
+            membersNotInWBEl.textContent = membersNotInWB || '-';
+        }
+
+        function toggleGuildSection() {
+            const guildSection = document.getElementById('guildSection');
+            const isVisible = guildSection.style.display !== 'none';
+            
+            if (isVisible) {
+                guildSection.style.display = 'none';
+            } else {
+                guildSection.style.display = 'block';
+                if (guildMembers.length === 0) {
+                    loadGuildMembers(); // Cargar automáticamente si no hay datos
+                }
+            }
+        }
+
+        async function addMemberToWB(memberName) {
+            if (!isAdminLoggedIn) {
+                return;
+            }
+
+            // Verificar si ya existe
+            const existingName = names.find(n => n.name.toLowerCase() === memberName.toLowerCase());
+            if (existingName) {
+                showMessage('guildMessage', 'Este miembro ya está en la lista de WB', 'error');
+                return;
+            }
+
+            try {
+                console.log('📝 Agregando miembro al WB:', memberName);
+                showMessage('guildMessage', 'Agregando al WB...', 'loading');
+                
+                await db.collection('names').add({
+                    name: memberName,
+                    timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+                    addedBy: 'admin-guild',
+                    source: 'guild-list'
+                });
+
+                showMessage('guildMessage', `"${memberName}" agregado al WB correctamente`, 'success');
+                console.log('✅ Miembro agregado al WB exitosamente');
+            } catch (error) {
+                console.error('❌ Error al agregar miembro al WB:', error);
+                showMessage('guildMessage', 'Error al agregar: ' + error.message, 'error');
+            }
+        }
 
         // ============= FUNCIONES DE ADMIN =============
         function login() {
@@ -442,6 +701,7 @@
                 document.getElementById('loginSection').style.display = 'none';
                 document.getElementById('adminSection').style.display = 'block';
                 updateDisplay();
+                displayGuildMembers(); // Actualizar vista de guild si está visible
                 showMessage('loginMessage', 'Acceso concedido correctamente', 'success');
                 document.getElementById('adminPassword').value = '';
                 console.log('👑 Admin logueado');
@@ -455,9 +715,11 @@
             isAdminLoggedIn = false;
             document.getElementById('loginSection').style.display = 'block';
             document.getElementById('adminSection').style.display = 'none';
+            document.getElementById('guildSection').style.display = 'none';
             document.getElementById('adminPassword').value = '';
             document.getElementById('nameInput').value = '';
             updateDisplay();
+            displayGuildMembers(); // Actualizar vista de guild
             console.log('👋 Admin cerró sesión');
         }
 
@@ -490,7 +752,8 @@
                 await db.collection('names').add({
                     name: name,
                     timestamp: firebase.firestore.FieldValue.serverTimestamp(),
-                    addedBy: 'admin'
+                    addedBy: 'admin',
+                    source: 'manual'
                 });
 
                 nameInput.value = '';
