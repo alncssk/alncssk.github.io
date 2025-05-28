@@ -555,15 +555,27 @@
                     console.log('📡 Datos recibidos desde Firestore');
                     names = [];
                     const now = new Date();
-                    const expiredNames = []; // Para eliminar nombres vencidos
                     const oneWeekAgo = new Date(now.getTime() - (7 * 24 * 60 * 60 * 1000)); // 1 semana atrás
                     
                     snapshot.forEach((doc) => {
                         const data = doc.data();
                         const nameTimestamp = data.timestamp ? data.timestamp.toDate() : new Date();
                         const lastWBDate = data.lastWBDate ? data.lastWBDate.toDate() : nameTimestamp;
+                        const prioDate = data.prioDate ? data.prioDate.toDate() : null;
+                        
                         const hoursSinceAdded = (now - nameTimestamp) / (1000 * 60 * 60);
                         const daysSinceLastWB = (now - lastWBDate) / (1000 * 60 * 60 * 24);
+                        
+                        // Calcular estado PRIO (24 horas)
+                        let hasPrio = false;
+                        let prioHoursLeft = 0;
+                        if (prioDate) {
+                            const hoursSincePrio = (now - prioDate) / (1000 * 60 * 60);
+                            if (hoursSincePrio < 24) {
+                                hasPrio = true;
+                                prioHoursLeft = Math.max(0, Math.round(24 - hoursSincePrio));
+                            }
+                        }
                         
                         // Verificar si el nombre ha expirado (más de 1 semana sin ir al WB)
                         if (daysSinceLastWB > 7) {
@@ -573,11 +585,14 @@
                                 name: data.name,
                                 timestamp: data.timestamp,
                                 lastWBDate: data.lastWBDate || data.timestamp,
+                                prioDate: data.prioDate,
                                 daysSinceLastWB: Math.round(daysSinceLastWB),
                                 hasRightToWB: false, // Sin derecho por más de 1 semana
                                 hoursLeft: hoursSinceAdded < 24 ? Math.round(24 - hoursSinceAdded) : 0,
                                 isFromGuild: data.isFromGuild || false,
-                                guildMember: data.guildMember || false
+                                guildMember: data.guildMember || false,
+                                hasPrio: hasPrio,
+                                prioHoursLeft: prioHoursLeft
                             });
                         } else {
                             // Tiene derecho (menos de 1 semana)
@@ -586,11 +601,14 @@
                                 name: data.name,
                                 timestamp: data.timestamp,
                                 lastWBDate: data.lastWBDate || data.timestamp,
+                                prioDate: data.prioDate,
                                 daysSinceLastWB: Math.round(daysSinceLastWB),
                                 hasRightToWB: true,
                                 hoursLeft: hoursSinceAdded < 24 ? Math.round(24 - hoursSinceAdded) : 0,
                                 isFromGuild: data.isFromGuild || false,
-                                guildMember: data.guildMember || false
+                                guildMember: data.guildMember || false,
+                                hasPrio: hasPrio,
+                                prioHoursLeft: prioHoursLeft
                             });
                         }
                     });
@@ -598,6 +616,7 @@
                     console.log('Total nombres en lista:', names.length);
                     console.log('Con derecho al WB:', names.filter(n => n.hasRightToWB).length);
                     console.log('Sin derecho (>1 semana):', names.filter(n => !n.hasRightToWB).length);
+                    console.log('Con PRIO activo:', names.filter(n => n.hasPrio).length);
                     updateDisplay();
                     updateGuildStats();
                 }, (error) => {
@@ -1111,15 +1130,16 @@
             // Verificar si ya existe
             const existingName = names.find(n => n.name.toLowerCase() === name.toLowerCase());
             if (existingName) {
-                // Si existe, actualizar su fecha de WB
+                // Si existe, actualizar su fecha de WB y darle PRIO
                 try {
                     await db.collection('names').doc(existingName.id).update({
                         lastWBDate: firebase.firestore.FieldValue.serverTimestamp(),
                         wentBodyDate: firebase.firestore.FieldValue.serverTimestamp(),
+                        prioDate: firebase.firestore.FieldValue.serverTimestamp(), // NUEVA: Fecha PRIO
                         markedBodyBy: 'admin-manual'
                     });
                     nameInput.value = '';
-                    showMessage('adminMessage', `"${name}" - Fecha WB actualizada`, 'success');
+                    showMessage('adminMessage', `"${name}" - Marcado como BODY + PRIO 24h`, 'success');
                 } catch (error) {
                     showMessage('adminMessage', 'Error al actualizar: ' + error.message, 'error');
                 }
@@ -1127,8 +1147,8 @@
             }
 
             try {
-                console.log('📝 Agregando nombre:', name);
-                showMessage('adminMessage', 'Agregando nombre...', 'loading');
+                console.log('📝 Agregando nombre con PRIO:', name);
+                showMessage('adminMessage', 'Agregando nombre con PRIO...', 'loading');
                 
                 // Verificar si es miembro del guild
                 const isGuildMember = guildMembers.some(member => 
@@ -1139,6 +1159,7 @@
                     name: name,
                     timestamp: firebase.firestore.FieldValue.serverTimestamp(),
                     lastWBDate: firebase.firestore.FieldValue.serverTimestamp(),
+                    prioDate: firebase.firestore.FieldValue.serverTimestamp(), // NUEVA: Fecha PRIO
                     addedBy: 'admin',
                     source: 'manual',
                     guildMember: isGuildMember,
@@ -1146,8 +1167,8 @@
                 });
 
                 nameInput.value = '';
-                showMessage('adminMessage', `"${name}" agregado correctamente`, 'success');
-                console.log('✅ Nombre agregado exitosamente');
+                showMessage('adminMessage', `"${name}" agregado con PRIO 24h`, 'success');
+                console.log('✅ Nombre agregado con PRIO exitosamente');
             } catch (error) {
                 console.error('❌ Error al agregar nombre:', error);
                 showMessage('adminMessage', 'Error al agregar: ' + error.message, 'error');
@@ -1182,22 +1203,43 @@
                 return;
             }
 
-            // Separar entre quienes tienen derecho y quienes no
+            // Separar y ordenar: PRIO primero, luego por derecho
             const withRight = names.filter(n => n.hasRightToWB);
             const withoutRight = names.filter(n => !n.hasRightToWB);
+            
+            // Ordenar dentro de cada grupo: PRIO primero
+            withRight.sort((a, b) => {
+                if (a.hasPrio && !b.hasPrio) return -1;
+                if (!a.hasPrio && b.hasPrio) return 1;
+                return a.name.localeCompare(b.name);
+            });
 
             let html = '';
             
             // Sección de quienes TIENEN derecho
             if (withRight.length > 0) {
+                const prioCount = withRight.filter(n => n.hasPrio).length;
                 html += `
                     <div style="background: #d4edda; padding: 15px; border-radius: 8px; margin-bottom: 20px; border-left: 4px solid #28a745;">
-                        <h3 style="color: #155724; margin-bottom: 15px;">✅ PUEDE IR AL WORLD BOSS (${withRight.length})</h3>
+                        <h3 style="color: #155724; margin-bottom: 15px;">✅ PUEDE IR AL WORLD BOSS (${withRight.length}) ${prioCount > 0 ? `- 🔥 ${prioCount} CON PRIO` : ''}</h3>
                         <p style="color: #155724; font-size: 13px; margin-bottom: 15px;"><strong>WB Caller:</strong> Estas personas SÍ pueden entrar a la party</p>
                 `;
                 
                 withRight.forEach(nameObj => {
                     const guildBadge = nameObj.guildMember ? '<span style="background: #007bff; color: white; padding: 2px 6px; border-radius: 3px; font-size: 11px; margin-left: 8px;">GUILD</span>' : '';
+                    
+                    // Badge PRIO con contador de 24 horas
+                    let prioBadge = '';
+                    if (nameObj.hasPrio) {
+                        const prioHours = nameObj.prioHoursLeft;
+                        if (prioHours > 12) {
+                            prioBadge = `<span style="background: #ff6b35; color: white; padding: 2px 8px; border-radius: 3px; font-size: 12px; font-weight: bold; margin-left: 5px; animation: pulse 1.5s infinite;">🔥 PRIO ${prioHours}h</span>`;
+                        } else if (prioHours > 6) {
+                            prioBadge = `<span style="background: #ff8c42; color: white; padding: 2px 8px; border-radius: 3px; font-size: 12px; font-weight: bold; margin-left: 5px;">🔥 PRIO ${prioHours}h</span>`;
+                        } else {
+                            prioBadge = `<span style="background: #ffa726; color: white; padding: 2px 8px; border-radius: 3px; font-size: 12px; font-weight: bold; margin-left: 5px; animation: blink 2s infinite;">🔥 PRIO ${prioHours}h</span>`;
+                        }
+                    }
                     
                     // Contador de 7 días visual
                     const daysLeft = 7 - nameObj.daysSinceLastWB;
@@ -1215,13 +1257,21 @@
                         countdownBadge = `<span style="background: ${countdownColor}; color: white; padding: 2px 8px; border-radius: 3px; font-size: 12px; font-weight: bold; margin-left: 5px;">🔥 ${daysLeft} DÍAS</span>`;
                     }
                     
+                    // Estilo especial para PRIO
+                    const nameStyle = nameObj.hasPrio ? 
+                        'font-size: 22px; font-weight: bold; color: #ff6b35;' : 
+                        'font-size: 20px; font-weight: bold;';
+                    
                     html += `
-                        <div class="name-item" style="border-left: 3px solid #28a745;">
+                        <div class="name-item" style="border-left: 3px solid ${nameObj.hasPrio ? '#ff6b35' : '#28a745'}; ${nameObj.hasPrio ? 'background: linear-gradient(90deg, #fff3e0, #ffffff);' : ''}">
                             <div>
-                                <span class="name-text" style="font-size: 20px; font-weight: bold;">${escapeHtml(nameObj.name)}</span>
+                                <span class="name-text" style="${nameStyle}">${escapeHtml(nameObj.name)}</span>
                                 ${guildBadge}
+                                ${prioBadge}
                                 ${countdownBadge}
-                                <br><small style="color: #28a745; font-size: 12px;">✅ Último WB hace ${nameObj.daysSinceLastWB} días - Le quedan ${daysLeft} días</small>
+                                <br><small style="color: ${nameObj.hasPrio ? '#ff6b35' : '#28a745'}; font-size: 12px;">
+                                    ${nameObj.hasPrio ? `🔥 PRIORIDAD - Fue body recientemente (${nameObj.prioHoursLeft}h restantes)` : `✅ Último WB hace ${nameObj.daysSinceLastWB} días - Le quedan ${daysLeft} días`}
+                                </small>
                             </div>
                             ${isAdminLoggedIn ? `
                                 <div>
