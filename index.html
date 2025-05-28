@@ -331,21 +331,22 @@
 
             <!-- Sincronización -->
             <div class="sync-section">
-                <h2>🔄 Sincronización con AlbionDB</h2>
-                <p>Obtiene automáticamente la lista de miembros actuales del gremio desde: <strong>https://albiondb.net/guild/Morgana+Enjoyers/</strong></p>
+                <h2>🔄 Sincronización con API Oficial de Albion</h2>
+                <p>Obtiene automáticamente la lista de miembros desde: <strong>API oficial de Albion Online</strong></p>
+                <p style="font-size: 12px; color: #666; margin: 5px 0;">API: https://gameinfo.albiononline.com/api/gameinfo/guilds/yKUUaSnNR7irOoIE8TnKVg/members</p>
                 <div style="display: flex; gap: 10px; margin: 15px 0; flex-wrap: wrap;">
                     <button class="btn btn-info" onclick="syncGuildMembers()">🔄 Sincronizar Ahora</button>
                     <button class="btn btn-success" onclick="toggleAutoSync()">
                         <span id="autoSyncText">🤖 Activar Auto-Sync</span>
                     </button>
-                    <button class="btn btn-warning" onclick="debugAlbionDBPage()">🔍 Debug Página</button>
-                    <button class="btn btn-primary" onclick="testDirectAccess()">🌐 Test Proxies</button>
-                    <button class="btn btn-danger" onclick="testSpecificExtraction()">🧪 Test Extracción</button>
+                    <button class="btn btn-warning" onclick="debugAlbionAPI()">🔍 Debug API</button>
+                    <button class="btn btn-primary" onclick="testDirectAccess()">🌐 Test API</button>
+                    <button class="btn btn-danger" onclick="testAPIExtraction()">🧪 Test Extracción</button>
                 </div>
                 <div id="syncMessage"></div>
                 <div class="last-sync" id="lastSyncTime">Última sincronización: Nunca</div>
-                <div style="font-size: 12px; color: #666; margin-top: 10px;">
-                    💡 <strong>Orden recomendado:</strong> 1) Debug Página → 2) Test Extracción → 3) Sincronizar Ahora
+                <div style="font-size: 12px; color: #28a745; margin-top: 10px;">
+                    ✅ <strong>API Oficial:</strong> Datos directos, sin proxies, 100% confiable
                 </div>
             </div>
 
@@ -403,7 +404,7 @@
         // Variables globales
         const ADMIN_PASSWORD = "wbcaller123"; // Cambiar por tu contraseña
         const GUILD_NAME = "Morgana Enjoyers";
-        const GUILD_URL = "https://albiondb.net/guild/Morgana+Enjoyers/"; // URL exacta del gremio
+        const GUILD_API_URL = "https://gameinfo.albiononline.com/api/gameinfo/guilds/yKUUaSnNR7irOoIE8TnKVg/members"; // API oficial del gremio
         
         let isAdminLoggedIn = false;
         let members = [];
@@ -443,74 +444,43 @@
             }
         }
 
-        // ============= SINCRONIZACIÓN CON ALBIONDB =============
+        // ============= SINCRONIZACIÓN CON API OFICIAL DE ALBION =============
         async function syncGuildMembers() {
-            showMessage('syncMessage', '🔄 Sincronizando con AlbionDB...', 'loading');
+            showMessage('syncMessage', '🔄 Sincronizando con API oficial de Albion...', 'loading');
             
             try {
-                console.log('🌐 Obteniendo miembros del gremio desde AlbionDB...');
-                console.log('🔗 URL objetivo:', GUILD_URL);
+                console.log('🌐 Obteniendo miembros del gremio desde API oficial...');
+                console.log('🔗 API URL:', GUILD_API_URL);
                 
-                // Intentar múltiples métodos de CORS proxy
-                const corsProxies = [
-                    `https://api.allorigins.win/raw?url=${encodeURIComponent(GUILD_URL)}`,
-                    `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(GUILD_URL)}`,
-                    `https://cors-anywhere.herokuapp.com/${GUILD_URL}`,
-                    `https://thingproxy.freeboard.io/fetch/${GUILD_URL}`
-                ];
-                
-                let htmlText = null;
-                let usedProxy = '';
-                
-                for (let proxy of corsProxies) {
-                    try {
-                        console.log('🔄 Intentando proxy:', proxy);
-                        const response = await fetch(proxy, {
-                            headers: {
-                                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
-                                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
-                                'Accept-Language': 'en-US,en;q=0.5'
-                            }
-                        });
-                        
-                        if (response.ok) {
-                            htmlText = await response.text();
-                            usedProxy = proxy;
-                            console.log('✅ Proxy exitoso:', proxy);
-                            console.log('📄 HTML obtenido, tamaño:', htmlText.length, 'caracteres');
-                            break;
-                        } else {
-                            console.log('❌ Proxy falló:', proxy, response.status, response.statusText);
-                        }
-                    } catch (proxyError) {
-                        console.log('❌ Proxy error:', proxy, proxyError.message);
-                        continue;
+                // La API oficial de Albion permite CORS, así que podemos llamarla directamente
+                const response = await fetch(GUILD_API_URL, {
+                    method: 'GET',
+                    headers: {
+                        'Accept': 'application/json',
+                        'Content-Type': 'application/json'
                     }
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`Error HTTP ${response.status}: ${response.statusText}`);
                 }
                 
-                if (!htmlText) {
-                    throw new Error('Todos los proxies CORS fallaron. Verifica tu conexión a internet.');
+                const guildData = await response.json();
+                console.log('📊 Datos de API recibidos:', guildData);
+                
+                if (!Array.isArray(guildData)) {
+                    throw new Error('La respuesta de la API no es un array válido');
                 }
                 
-                console.log('📄 Página HTML obtenida exitosamente');
-                console.log('📄 Primeros 500 caracteres:', htmlText.substring(0, 500));
-                
-                // Crear parser DOM
-                const parser = new DOMParser();
-                const doc = parser.parseFromString(htmlText, 'text/html');
-                
-                const currentMembers = await extractMembersFromHTML(doc, htmlText);
-                
-                if (currentMembers.length === 0) {
-                    // Mostrar parte del HTML para debug
-                    console.log('🔍 HTML recibido (primeros 2000 chars) para debug:');
-                    console.log(htmlText.substring(0, 2000));
-                    
-                    throw new Error('No se pudieron encontrar miembros en la página de AlbionDB. Usa "🔍 Debug Página" para más información.');
-                }
+                // Extraer nombres de los miembros
+                const currentMembers = guildData.map(member => member.Name).filter(name => name && name.trim().length > 0);
                 
                 console.log(`✅ Total miembros encontrados: ${currentMembers.length}`);
                 console.log('👥 Lista de miembros:', currentMembers);
+                
+                if (currentMembers.length === 0) {
+                    throw new Error('No se encontraron miembros en la respuesta de la API');
+                }
                 
                 // Actualizar base de datos con miembros actuales
                 await updateMembersInDatabase(currentMembers);
@@ -519,7 +489,7 @@
                 await saveLastSyncTime();
                 loadLastSyncTime();
                 
-                showMessage('syncMessage', `✅ Sincronización completada: ${currentMembers.length} miembros actualizados desde ${GUILD_URL}`, 'success');
+                showMessage('syncMessage', `✅ Sincronización completada: ${currentMembers.length} miembros actualizados desde API oficial de Albion`, 'success');
                 
             } catch (error) {
                 console.error('❌ Error al sincronizar:', error);
@@ -531,183 +501,107 @@
             }
         }
 
-        async function extractMembersFromHTML(doc, htmlText) {
-            const currentMembers = [];
-            
-            console.log('🔍 Extrayendo miembros de HTML (longitud:', htmlText.length, 'caracteres)');
-            
-            // MÉTODO 1: Buscar específicamente la estructura de AlbionDB
-            console.log('🔍 Método 1: Buscando estructura específica de AlbionDB');
+        // Función para debug de la API oficial
+        async function debugAlbionAPI() {
+            console.log('🔍 DEBUG: Analizando API oficial de Albion...');
+            showMessage('syncMessage', '🔍 Analizando API oficial de Albion...', 'loading');
             
             try {
-                // Buscar el patrón específico de AlbionDB: "Current Guild Members" seguido de tabla
-                const currentMembersRegex = /Current Guild Members[\s\S]*?(?=Previous Guild Members|$)/i;
-                const currentMembersMatch = htmlText.match(currentMembersRegex);
+                console.log('🔗 API URL:', GUILD_API_URL);
                 
-                if (currentMembersMatch) {
-                    console.log('✅ Encontrada sección Current Guild Members');
-                    const currentMembersSection = currentMembersMatch[0];
-                    console.log('📄 Sección extraída (primeros 500 chars):', currentMembersSection.substring(0, 500));
-                    
-                    // Buscar enlaces de jugadores en esta sección específica
-                    const playerLinkRegex = /<a[^>]+href="[^"]*\/player\/([^"]*)"[^>]*>([^<]+)<\/a>/gi;
-                    let match;
-                    
-                    while ((match = playerLinkRegex.exec(currentMembersSection)) !== null) {
-                        const playerName = match[2].trim();
-                        if (playerName && playerName.length > 0 && !currentMembers.includes(playerName)) {
-                            currentMembers.push(playerName);
-                            console.log(`👤 Miembro encontrado (Método 1): ${playerName}`);
-                        }
+                const response = await fetch(GUILD_API_URL, {
+                    method: 'GET',
+                    headers: {
+                        'Accept': 'application/json',
+                        'Content-Type': 'application/json'
                     }
+                });
+                
+                console.log('📄 Status:', response.status);
+                console.log('📄 Status Text:', response.statusText);
+                console.log('📄 Headers:', [...response.headers.entries()]);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
                 }
+                
+                const guildData = await response.json();
+                console.log('📊 Respuesta completa de la API:', guildData);
+                
+                if (!Array.isArray(guildData)) {
+                    console.log('❌ La respuesta no es un array:', typeof guildData);
+                    throw new Error('La respuesta de la API no es un array válido');
+                }
+                
+                console.log(`📊 Total miembros en API: ${guildData.length}`);
+                
+                // Analizar estructura de un miembro
+                if (guildData.length > 0) {
+                    console.log('👤 Estructura del primer miembro:', guildData[0]);
+                    console.log('🔑 Propiedades disponibles:', Object.keys(guildData[0]));
+                }
+                
+                // Extraer nombres
+                const memberNames = guildData.map(member => member.Name).filter(name => name && name.trim().length > 0);
+                console.log(`👥 Nombres extraídos: ${memberNames.length}`);
+                console.log('📝 Lista de nombres:', memberNames);
+                
+                // Información adicional disponible
+                const sampleMembers = guildData.slice(0, 5).map(member => ({
+                    name: member.Name,
+                    id: member.Id,
+                    joinDate: member.JoinDate,
+                    // Agregar otras propiedades que puedan ser útiles
+                }));
+                
+                const debugInfo = `
+API OFICIAL DE ALBION - MORGANA ENJOYERS:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+🔗 API: ${GUILD_API_URL}
+✅ Respuesta exitosa (HTTP ${response.status})
+📊 Total miembros: ${guildData.length}
+👥 Nombres válidos: ${memberNames.length}
+
+🎯 PRIMEROS 10 MIEMBROS:
+${memberNames.slice(0, 10).map((name, i) => `${i+1}. ${name}`).join('\n')}
+${memberNames.length > 10 ? `\n...y ${memberNames.length - 10} más` : ''}
+
+🔍 Ver consola para datos completos
+                `;
+                
+                showMessage('syncMessage', `✅ API funcionando correctamente: ${memberNames.length} miembros encontrados`, 'success');
+                alert(debugInfo);
+                
+                return { 
+                    success: true, 
+                    members: memberNames, 
+                    totalCount: guildData.length,
+                    rawData: guildData 
+                };
+                
             } catch (error) {
-                console.log('⚠️ Error en Método 1:', error);
-            }
-            
-            // MÉTODO 2: Buscar patrones de tabla después de "Current Guild Members"
-            if (currentMembers.length === 0) {
-                console.log('🔍 Método 2: Buscando tabla después de Current Guild Members');
+                console.error('❌ Error al acceder a la API:', error);
+                showMessage('syncMessage', `❌ Error: ${error.message}`, 'error');
                 
-                try {
-                    const currentIndex = htmlText.indexOf('Current Guild Members');
-                    if (currentIndex !== -1) {
-                        console.log('✅ Texto "Current Guild Members" encontrado en posición:', currentIndex);
-                        
-                        // Tomar los siguientes 5000 caracteres después de "Current Guild Members"
-                        const afterCurrent = htmlText.substring(currentIndex, currentIndex + 5000);
-                        console.log('📄 Contenido después (primeros 500 chars):', afterCurrent.substring(0, 500));
-                        
-                        // Buscar tabla o contenedor con enlaces de jugadores
-                        const tableRegex = /<table[\s\S]*?<\/table>/i;
-                        const tableMatch = afterCurrent.match(tableRegex);
-                        
-                        if (tableMatch) {
-                            console.log('📊 Tabla encontrada después de Current Guild Members');
-                            const tableContent = tableMatch[0];
-                            
-                            const playerLinkRegex = /<a[^>]+href="[^"]*\/player\/[^"]*"[^>]*>([^<]+)<\/a>/gi;
-                            let match;
-                            
-                            while ((match = playerLinkRegex.exec(tableContent)) !== null) {
-                                const playerName = match[1].trim();
-                                if (playerName && playerName.length > 0 && !currentMembers.includes(playerName)) {
-                                    currentMembers.push(playerName);
-                                    console.log(`👤 Miembro encontrado (Método 2): ${playerName}`);
-                                }
-                            }
-                        } else {
-                            // Buscar enlaces de jugadores directamente
-                            const playerLinkRegex = /<a[^>]+href="[^"]*\/player\/[^"]*"[^>]*>([^<]+)<\/a>/gi;
-                            let match;
-                            let count = 0;
-                            
-                            while ((match = playerLinkRegex.exec(afterCurrent)) !== null && count < 100) {
-                                const playerName = match[1].trim();
-                                if (playerName && playerName.length > 0 && !currentMembers.includes(playerName)) {
-                                    currentMembers.push(playerName);
-                                    console.log(`👤 Miembro encontrado (Método 2 directo): ${playerName}`);
-                                    count++;
-                                }
-                            }
-                        }
-                    }
-                } catch (error) {
-                    console.log('⚠️ Error en Método 2:', error);
-                }
-            }
-            
-            // MÉTODO 3: Análisis DOM específico
-            if (currentMembers.length === 0) {
-                console.log('🔍 Método 3: Análisis DOM específico');
+                const errorInfo = `
+❌ ERROR DE API:
+━━━━━━━━━━━━━━━━━━━━━━━━
+
+🔗 URL: ${GUILD_API_URL}
+❌ Error: ${error.message}
+
+Posibles causas:
+• El ID del gremio cambió
+• La API está temporalmente inaccesible
+• Problemas de conectividad
+
+Ver consola para más detalles.
+                `;
                 
-                try {
-                    // Buscar elementos que contengan "Current Guild Members"
-                    const allElements = doc.querySelectorAll('*');
-                    let currentSection = null;
-                    
-                    for (let element of allElements) {
-                        if (element.textContent && element.textContent.includes('Current Guild Members')) {
-                            currentSection = element;
-                            console.log('✅ Elemento con "Current Guild Members" encontrado:', element.tagName);
-                            break;
-                        }
-                    }
-                    
-                    if (currentSection) {
-                        // Buscar en el elemento actual y sus siguientes hermanos
-                        const searchElements = [currentSection];
-                        let sibling = currentSection.nextElementSibling;
-                        let attempts = 0;
-                        
-                        while (sibling && attempts < 10) {
-                            searchElements.push(sibling);
-                            sibling = sibling.nextElementSibling;
-                            attempts++;
-                        }
-                        
-                        for (let element of searchElements) {
-                            const playerLinks = element.querySelectorAll('a[href*="/player/"]');
-                            
-                            if (playerLinks.length > 0) {
-                                console.log(`🎯 Encontrados ${playerLinks.length} enlaces en elemento ${element.tagName}`);
-                                
-                                for (let link of playerLinks) {
-                                    const playerName = link.textContent.trim();
-                                    if (playerName && playerName.length > 0 && !currentMembers.includes(playerName)) {
-                                        currentMembers.push(playerName);
-                                        console.log(`👤 Miembro encontrado (Método 3): ${playerName}`);
-                                    }
-                                }
-                                
-                                // Si encontramos miembros, detener búsqueda
-                                if (currentMembers.length > 0) break;
-                            }
-                        }
-                    }
-                } catch (error) {
-                    console.log('⚠️ Error en Método 3:', error);
-                }
+                alert(errorInfo);
+                return { success: false, members: [], error: error.message };
             }
-            
-            // MÉTODO 4: Buscar patrones específicos de AlbionDB
-            if (currentMembers.length === 0) {
-                console.log('🔍 Método 4: Patrones específicos de AlbionDB');
-                
-                try {
-                    // Buscar patrón: "X Members" después de "Current Guild Members"
-                    const memberCountRegex = /Current Guild Members[\s\S]*?(\d+)\s+Members/i;
-                    const memberCountMatch = htmlText.match(memberCountRegex);
-                    
-                    if (memberCountMatch) {
-                        const expectedCount = parseInt(memberCountMatch[1]);
-                        console.log(`📊 Se esperan ${expectedCount} miembros actuales`);
-                        
-                        // Buscar todos los enlaces de jugador después de este punto
-                        const startIndex = memberCountMatch.index + memberCountMatch[0].length;
-                        const searchArea = htmlText.substring(startIndex, startIndex + 10000);
-                        
-                        const playerLinkRegex = /<a[^>]+href="[^"]*\/player\/[^"]*"[^>]*>([^<]+)<\/a>/gi;
-                        let match;
-                        
-                        while ((match = playerLinkRegex.exec(searchArea)) !== null) {
-                            const playerName = match[1].trim();
-                            if (playerName && playerName.length > 0 && !currentMembers.includes(playerName)) {
-                                currentMembers.push(playerName);
-                                console.log(`👤 Miembro encontrado (Método 4): ${playerName}`);
-                                
-                                // Detener si alcanzamos el número esperado
-                                if (currentMembers.length >= expectedCount) break;
-                            }
-                        }
-                    }
-                } catch (error) {
-                    console.log('⚠️ Error en Método 4:', error);
-                }
-            }
-            
-            console.log(`🎯 Total miembros extraídos: ${currentMembers.length}`);
-            return currentMembers;
         }
 
         async function tryAlternativeMethod() {
@@ -730,123 +624,58 @@
             }
         }
 
-        // Función adicional para debug y testing
-        async function debugAlbionDBPage() {
-            console.log('🔍 DEBUG: Analizando página de AlbionDB...');
-            showMessage('syncMessage', '🔍 Analizando página de AlbionDB para debug...', 'loading');
+        // Función para test de la API
+        async function testAPIExtraction() {
+            console.log('🧪 TEST: Extracción desde API oficial...');
+            showMessage('syncMessage', '🧪 Probando API oficial...', 'loading');
             
             try {
-                console.log('🔗 URL objetivo:', GUILD_URL);
-                const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(GUILD_URL)}`;
-                console.log('🔗 Proxy URL:', proxyUrl);
+                console.log('🔗 API URL:', GUILD_API_URL);
                 
-                const response = await fetch(proxyUrl);
-                const data = await response.json();
+                const response = await fetch(GUILD_API_URL);
+                const guildData = await response.json();
                 
-                console.log('📄 Status:', data.status);
-                console.log('📄 Tamaño del contenido:', data.contents.length, 'caracteres');
+                const extractedMembers = guildData.map(member => member.Name).filter(name => name && name.trim().length > 0);
                 
-                // Buscar "Current Guild Members" específicamente
-                const currentIndex = data.contents.indexOf('Current Guild Members');
-                if (currentIndex !== -1) {
-                    console.log('✅ "Current Guild Members" encontrado en posición:', currentIndex);
+                if (extractedMembers.length > 0) {
+                    console.log('✅ Extracción exitosa:', extractedMembers);
+                    showMessage('syncMessage', `✅ API funcionando: ${extractedMembers.length} miembros encontrados`, 'success');
                     
-                    // Mostrar contexto alrededor
-                    const contextBefore = data.contents.substring(Math.max(0, currentIndex - 200), currentIndex);
-                    const contextAfter = data.contents.substring(currentIndex, currentIndex + 1000);
-                    
-                    console.log('📖 Contexto ANTES:', contextBefore);
-                    console.log('📖 Contexto DESPUÉS:', contextAfter);
-                    
-                    // Buscar patrón "X Members"
-                    const memberCountRegex = /(\d+)\s+Members/i;
-                    const memberCountMatch = contextAfter.match(memberCountRegex);
-                    
-                    if (memberCountMatch) {
-                        const memberCount = memberCountMatch[1];
-                        console.log(`📊 Número de miembros actuales: ${memberCount}`);
-                    }
-                    
-                    // Buscar enlaces de jugadores en el contexto
-                    const playerLinkRegex = /<a[^>]+href="[^"]*\/player\/[^"]*"[^>]*>([^<]+)<\/a>/gi;
-                    const foundPlayers = [];
-                    let match;
-                    
-                    while ((match = playerLinkRegex.exec(contextAfter)) !== null) {
-                        foundPlayers.push(match[1].trim());
-                        if (foundPlayers.length >= 20) break; // Limitar para debug
-                    }
-                    
-                    console.log(`🎯 Jugadores encontrados en contexto: ${foundPlayers.length}`);
-                    console.log('👥 Lista de jugadores:', foundPlayers);
-                    
-                    // Mostrar resultado en la interfaz
-                    const debugInfo = `
-ANÁLISIS DE ALBIONDB - MORGANA ENJOYERS:
+                    const alertMessage = `
+🎯 MIEMBROS DESDE API OFICIAL:
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-🔗 URL: ${GUILD_URL}
-✅ "Current Guild Members" encontrado
-📊 Miembros encontrados: ${foundPlayers.length}
-${memberCountMatch ? `📈 Número oficial: ${memberCountMatch[1]} miembros` : '❌ No se encontró número oficial'}
+📊 Total: ${extractedMembers.length} miembros
 
-👥 JUGADORES ENCONTRADOS:
-${foundPlayers.slice(0, 15).map(name => `• ${name}`).join('\n')}
-${foundPlayers.length > 15 ? '\n...y más' : ''}
+👥 LISTA COMPLETA:
+${extractedMembers.map((name, i) => `${i+1}. ${name}`).join('\n')}
 
-🔍 Ver consola para detalles completos
+✅ Datos obtenidos directamente de la API oficial de Albion Online
+
+¿Proceder con la sincronización?
                     `;
                     
-                    showMessage('syncMessage', `🔍 Debug completado. Jugadores encontrados: ${foundPlayers.length}`, 'success');
-                    alert(debugInfo);
+                    alert(alertMessage);
                     
-                    return { 
-                        found: foundPlayers.length > 0, 
-                        players: foundPlayers, 
-                        memberCount: memberCountMatch ? memberCountMatch[1] : null 
-                    };
-                    
-                } else {
-                    console.log('❌ "Current Guild Members" NO encontrado');
-                    
-                    // Buscar variaciones
-                    const variations = ['current guild members', 'guild members', 'members', 'Current Members'];
-                    const foundVariations = [];
-                    
-                    for (let variation of variations) {
-                        const index = data.contents.toLowerCase().indexOf(variation.toLowerCase());
-                        if (index !== -1) {
-                            foundVariations.push(`${variation}: posición ${index}`);
-                            console.log(`✅ Encontrado "${variation}" en posición ${index}`);
-                        }
+                    // Preguntar si quiere sincronizar ahora
+                    const shouldSync = confirm('¿Actualizar la base de datos con estos miembros?');
+                    if (shouldSync) {
+                        await updateMembersInDatabase(extractedMembers);
+                        await saveLastSyncTime();
+                        loadLastSyncTime();
+                        showMessage('syncMessage', `✅ Base de datos actualizada con ${extractedMembers.length} miembros desde API oficial`, 'success');
                     }
                     
-                    showMessage('syncMessage', '❌ No se encontró "Current Guild Members" en la página', 'error');
-                    
-                    // Mostrar las primeras líneas para debug
-                    console.log('📄 Primeras 2000 caracteres de la página:');
-                    console.log(data.contents.substring(0, 2000));
-                    
-                    const debugInfo = `
-❌ NO SE ENCONTRÓ "Current Guild Members"
-
-🔍 Variaciones encontradas:
-${foundVariations.length > 0 ? foundVariations.join('\n') : 'Ninguna variación encontrada'}
-
-📄 Tamaño de página: ${data.contents.length} caracteres
-
-Ver consola para contenido completo de la página.
-                    `;
-                    
-                    alert(debugInfo);
-                    return { found: false, players: [], memberCount: null };
+                    return extractedMembers;
+                } else {
+                    throw new Error('No se encontraron miembros válidos en la respuesta de la API');
                 }
                 
             } catch (error) {
-                console.error('❌ Error en debug:', error);
-                showMessage('syncMessage', `❌ Error en debug: ${error.message}`, 'error');
-                alert(`❌ Error en debug: ${error.message}`);
-                return { found: false, players: [], memberCount: null };
+                console.error('❌ Error en test de API:', error);
+                showMessage('syncMessage', `❌ Error: ${error.message}`, 'error');
+                alert(`❌ Error al acceder a la API: ${error.message}`);
+                return [];
             }
         }
 
@@ -915,65 +744,69 @@ ${extractedMembers.length > 20 ? `\n...y ${extractedMembers.length - 20} más` :
         }
 
         async function testDirectAccess() {
-            console.log('🌐 TEST: Acceso directo a AlbionDB...');
-            showMessage('syncMessage', '🌐 Probando acceso directo...', 'loading');
-            
-            const guildUrl = `https://albiondb.net/guild/${encodeURIComponent(GUILD_NAME)}/`;
+            console.log('🌐 TEST: Acceso directo a API oficial...');
+            showMessage('syncMessage', '🌐 Probando acceso directo a API...', 'loading');
             
             try {
-                // Intentar acceso directo (fallará por CORS pero veremos el error)
-                const directResponse = await fetch(guildUrl, {
-                    mode: 'no-cors',
+                // Probar acceso directo a la API oficial
+                const response = await fetch(GUILD_API_URL, {
+                    method: 'GET',
                     headers: {
-                        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+                        'Accept': 'application/json',
+                        'Content-Type': 'application/json'
                     }
                 });
                 
-                console.log('✅ Acceso directo exitoso (inesperado):', directResponse.status);
-                showMessage('syncMessage', '✅ Acceso directo funcionó (inesperado)', 'success');
+                console.log('✅ Status:', response.status);
+                console.log('✅ Headers:', [...response.headers.entries()]);
                 
-            } catch (directError) {
-                console.log('❌ Acceso directo falló (esperado):', directError.message);
-                
-                // Ahora probar con diferentes proxies
-                const proxies = [
-                    `https://api.allorigins.win/raw?url=${encodeURIComponent(guildUrl)}`,
-                    `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(guildUrl)}`,
-                    `https://cors-anywhere.herokuapp.com/${guildUrl}`,
-                    `https://thingproxy.freeboard.io/fetch/${guildUrl}`
-                ];
-                
-                let workingProxy = null;
-                
-                for (let i = 0; i < proxies.length; i++) {
-                    const proxy = proxies[i];
-                    console.log(`🔄 Probando proxy ${i+1}/${proxies.length}: ${proxy}`);
+                if (response.ok) {
+                    const data = await response.json();
+                    console.log('✅ Datos recibidos:', data);
                     
-                    try {
-                        const proxyResponse = await fetch(proxy, {
-                            headers: {
-                                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-                            }
-                        });
-                        
-                        if (proxyResponse.ok) {
-                            const text = await proxyResponse.text();
-                            console.log(`✅ Proxy ${i+1} funcionó:`, text.length, 'caracteres');
-                            workingProxy = proxy;
-                            break;
-                        } else {
-                            console.log(`❌ Proxy ${i+1} falló:`, proxyResponse.status, proxyResponse.statusText);
-                        }
-                    } catch (proxyError) {
-                        console.log(`❌ Proxy ${i+1} error:`, proxyError.message);
-                    }
+                    showMessage('syncMessage', `✅ API accesible directamente: ${data.length} miembros`, 'success');
+                    
+                    const testInfo = `
+🌐 TEST DE ACCESO DIRECTO:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+✅ API oficial completamente accesible
+🔗 URL: ${GUILD_API_URL}
+📊 HTTP Status: ${response.status} (${response.statusText})
+👥 Total miembros: ${data.length}
+
+🎯 La API oficial de Albion funciona perfectamente
+🚀 No necesitamos proxies CORS
+✨ Datos JSON limpios y confiables
+
+¡Todo listo para usar!
+                    `;
+                    
+                    alert(testInfo);
+                } else {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
                 }
                 
-                if (workingProxy) {
-                    showMessage('syncMessage', `✅ Proxy funcional encontrado: ${workingProxy}`, 'success');
-                } else {
-                    showMessage('syncMessage', '❌ Ningún proxy funcionó. Ver consola para detalles.', 'error');
-                }
+            } catch (error) {
+                console.error('❌ Error de acceso:', error);
+                showMessage('syncMessage', `❌ Error: ${error.message}`, 'error');
+                
+                const errorInfo = `
+❌ ERROR DE ACCESO DIRECTO:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+🔗 URL: ${GUILD_API_URL}
+❌ Error: ${error.message}
+
+Posibles causas:
+• El ID del gremio ha cambiado
+• La API está temporalmente inaccesible
+• Problemas de red/CORS
+
+Recomendación: Verificar el ID del gremio actual
+                `;
+                
+                alert(errorInfo);
             }
         }
 
