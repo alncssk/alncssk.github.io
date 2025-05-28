@@ -3,9 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sistema WB - Morgana Enjoyers</title>
+    <title>Lista de Nombres</title>
     
-    <!-- Firebase SDK v9 Compat -->
+    <!-- Firebase SDK v9 Compat (más estable) -->
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
@@ -25,7 +25,7 @@
         }
 
         .container {
-            max-width: 1200px;
+            max-width: 800px;
             margin: 0 auto;
             background: white;
             border-radius: 15px;
@@ -50,46 +50,19 @@
             padding: 30px;
         }
 
-        .stats-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 20px;
-            margin-bottom: 30px;
-        }
-
-        .stat-card {
-            background: #f8f9fa;
-            padding: 20px;
-            border-radius: 10px;
-            text-align: center;
-            border-left: 4px solid #007bff;
-        }
-
-        .stat-number {
-            font-size: 2em;
-            font-weight: bold;
-            color: #333;
-        }
-
-        .stat-label {
-            color: #666;
-            margin-top: 5px;
-        }
-
-        .sync-section {
-            background: #e8f5e8;
-            padding: 20px;
-            border-radius: 10px;
-            margin-bottom: 30px;
-            border-left: 4px solid #28a745;
-        }
-
         .login-section {
             background: #f8f9fa;
             padding: 20px;
             border-radius: 10px;
             margin-bottom: 30px;
             border-left: 4px solid #007bff;
+        }
+
+        .public-section {
+            background: #e8f5e8;
+            padding: 20px;
+            border-radius: 10px;
+            border-left: 4px solid #28a745;
         }
 
         .admin-section {
@@ -99,13 +72,6 @@
             margin-bottom: 30px;
             border-left: 4px solid #ffc107;
             display: none;
-        }
-
-        .members-section {
-            background: #f8f9fa;
-            padding: 20px;
-            border-radius: 10px;
-            border-left: 4px solid #6c757d;
         }
 
         .form-group {
@@ -144,79 +110,72 @@
             transition: all 0.3s ease;
             text-transform: uppercase;
             letter-spacing: 1px;
-            margin-right: 10px;
-            margin-bottom: 10px;
         }
 
-        .btn-primary { background: linear-gradient(135deg, #007bff, #0056b3); color: white; }
-        .btn-success { background: linear-gradient(135deg, #28a745, #1e7e34); color: white; }
-        .btn-danger { background: linear-gradient(135deg, #dc3545, #bd2130); color: white; }
-        .btn-warning { background: linear-gradient(135deg, #ffc107, #e0a800); color: #212529; }
-        .btn-info { background: linear-gradient(135deg, #17a2b8, #117a8b); color: white; }
+        .btn-primary {
+            background: linear-gradient(135deg, #007bff, #0056b3);
+            color: white;
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, #28a745, #1e7e34);
+            color: white;
+        }
+
+        .btn-danger {
+            background: linear-gradient(135deg, #dc3545, #bd2130);
+            color: white;
+            font-size: 14px;
+            padding: 8px 16px;
+            margin-left: 10px;
+        }
+
+        .btn-warning {
+            background: linear-gradient(135deg, #ffc107, #e0a800);
+            color: #212529;
+        }
 
         .btn:hover {
             transform: translateY(-2px);
             box-shadow: 0 5px 15px rgba(0,0,0,0.2);
         }
 
-        .member-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-            gap: 15px;
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        .name-list {
             margin-top: 20px;
         }
 
-        .member-item {
+        .name-item {
             background: white;
             padding: 15px;
+            margin-bottom: 10px;
             border-radius: 8px;
-            border: 2px solid #ddd;
+            border: 1px solid #ddd;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
             transition: all 0.3s ease;
-            position: relative;
         }
 
-        .member-item:hover {
+        .name-item:hover {
             box-shadow: 0 3px 10px rgba(0,0,0,0.1);
             transform: translateY(-1px);
         }
 
-        .member-item.warning {
-            border-color: #ffc107;
-            background: #fff9e6;
-        }
-
-        .member-item.danger {
-            border-color: #dc3545;
-            background: #ffe6e6;
-        }
-
-        .member-item.success {
-            border-color: #28a745;
-            background: #e8f5e8;
-        }
-
-        .member-name {
+        .name-text {
             font-size: 18px;
-            font-weight: bold;
+            font-weight: 500;
             color: #333;
-            margin-bottom: 5px;
         }
 
-        .member-status {
-            font-size: 14px;
-            margin-bottom: 10px;
-        }
-
-        .member-controls {
-            display: flex;
-            gap: 5px;
-            justify-content: flex-end;
-        }
-
-        .member-controls .btn {
-            padding: 6px 12px;
-            font-size: 12px;
-            margin: 0;
+        .empty-state {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+            font-style: italic;
         }
 
         .status-message {
@@ -227,10 +186,29 @@
             font-weight: bold;
         }
 
-        .success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
-        .error { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
-        .loading { background: #cce7ff; color: #004085; border: 1px solid #b3d9ff; }
-        .warning { background: #fff3cd; color: #856404; border: 1px solid #ffeaa7; }
+        .success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .loading {
+            background: #cce7ff;
+            color: #004085;
+            border: 1px solid #b3d9ff;
+        }
+
+        .admin-controls {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
 
         .firebase-status {
             position: fixed;
@@ -241,42 +219,17 @@
             color: white;
             font-size: 12px;
             font-weight: bold;
-            z-index: 1000;
         }
 
-        .firebase-connected { background: #28a745; }
-        .firebase-disconnected { background: #dc3545; }
-
-        .last-sync {
-            font-size: 12px;
-            color: #666;
-            margin-top: 10px;
+        .firebase-connected {
+            background: #28a745;
         }
 
-        .member-badge {
-            position: absolute;
-            top: 10px;
-            right: 10px;
-            padding: 4px 8px;
-            border-radius: 12px;
-            font-size: 10px;
-            font-weight: bold;
-            color: white;
+        .firebase-disconnected {
+            background: #dc3545;
         }
 
-        .badge-ok { background: #28a745; }
-        .badge-warning { background: #ffc107; color: #212529; }
-        .badge-danger { background: #dc3545; }
-
-        @media (max-width: 768px) {
-            .stats-grid {
-                grid-template-columns: 1fr;
-            }
-            
-            .member-grid {
-                grid-template-columns: 1fr;
-            }
-            
+        @media (max-width: 600px) {
             .container {
                 margin: 10px;
                 border-radius: 10px;
@@ -293,6 +246,16 @@
             .content {
                 padding: 20px;
             }
+            
+            .admin-controls {
+                flex-direction: column;
+            }
+            
+            .name-item {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 10px;
+            }
         }
     </style>
 </head>
@@ -304,57 +267,16 @@
 
     <div class="container">
         <div class="header">
-            <h1>⚔️ Sistema World Boss</h1>
-            <p>Morgana Enjoyers - Seguimiento automático de miembros</p>
+            <h1>📝 Lista de Nombres</h1>
+            <p>Gestión pública de nombres con base de datos en tiempo real</p>
         </div>
         
         <div class="content">
-            <!-- Estadísticas -->
-            <div class="stats-grid">
-                <div class="stat-card">
-                    <div class="stat-number" id="totalMembers">0</div>
-                    <div class="stat-label">Miembros Totales</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-number" id="activeMembers">0</div>
-                    <div class="stat-label">Pueden ir WB</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-number" id="warningMembers">0</div>
-                    <div class="stat-label">En Advertencia</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-number" id="bannedMembers">0</div>
-                    <div class="stat-label">No pueden ir WB</div>
-                </div>
-            </div>
-
-            <!-- Sincronización -->
-            <div class="sync-section">
-                <h2>🔄 Sincronización con API Oficial de Albion</h2>
-                <p>Obtiene automáticamente la lista de miembros desde: <strong>API oficial de Albion Online</strong></p>
-                <p style="font-size: 12px; color: #666; margin: 5px 0;">API: https://gameinfo.albiononline.com/api/gameinfo/guilds/yKUUaSnNR7irOoIE8TnKVg/members</p>
-                <div style="display: flex; gap: 10px; margin: 15px 0; flex-wrap: wrap;">
-                    <button class="btn btn-info" onclick="syncGuildMembers()">🔄 Sincronizar Ahora</button>
-                    <button class="btn btn-success" onclick="toggleAutoSync()">
-                        <span id="autoSyncText">🤖 Activar Auto-Sync</span>
-                    </button>
-                    <button class="btn btn-warning" onclick="debugAlbionAPI()">🔍 Debug API</button>
-                    <button class="btn btn-primary" onclick="testDirectAccess()">🌐 Test API</button>
-                    <button class="btn btn-danger" onclick="testAPIExtraction()">🧪 Test Extracción</button>
-                </div>
-                <div id="syncMessage"></div>
-                <div class="last-sync" id="lastSyncTime">Última sincronización: Nunca</div>
-                <div style="font-size: 12px; color: #28a745; margin-top: 10px;">
-                    ✅ <strong>API Oficial:</strong> Datos directos, sin proxies, 100% confiable
-                </div>
-            </div>
-
             <!-- Sección de Login -->
             <div class="login-section" id="loginSection">
-                <h2>🔐 Acceso WB Caller</h2>
+                <h2>🔐 Acceso Administrativo</h2>
                 <div class="form-group">
-                    <label for="adminPassword">Contraseña de WB Caller:</label>
+                    <label for="adminPassword">Contraseña de Administrador:</label>
                     <input type="password" id="adminPassword" placeholder="Ingresa la contraseña">
                 </div>
                 <button class="btn btn-primary" onclick="login()">Iniciar Sesión</button>
@@ -363,21 +285,25 @@
 
             <!-- Sección de Administración -->
             <div class="admin-section" id="adminSection">
-                <h2>⚙️ Panel WB Caller</h2>
-                <div style="display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap;">
+                <h2>⚙️ Panel de Administración</h2>
+                <div class="admin-controls">
                     <button class="btn btn-warning" onclick="logout()">Cerrar Sesión</button>
-                    <button class="btn btn-success" onclick="markAllAttended()">✅ Marcar Todos Asistieron</button>
-                    <button class="btn btn-danger" onclick="resetAllCounters()">🔄 Resetear Todos</button>
                 </div>
+                
+                <div class="form-group">
+                    <label for="nameInput">Agregar Nuevo Nombre:</label>
+                    <input type="text" id="nameInput" placeholder="Escribe un nombre aquí">
+                </div>
+                <button class="btn btn-success" onclick="addName()">➕ Agregar a la Lista</button>
                 <div id="adminMessage"></div>
             </div>
 
-            <!-- Lista de Miembros -->
-            <div class="members-section">
-                <h2>👥 Miembros del Gremio</h2>
-                <div id="membersList" class="member-grid">
-                    <div style="grid-column: 1 / -1; text-align: center; padding: 40px; color: #666; font-style: italic;">
-                        🔄 Cargando miembros...
+            <!-- Sección Pública -->
+            <div class="public-section">
+                <h2>👥 Lista Pública de Nombres</h2>
+                <div id="nameList" class="name-list">
+                    <div class="empty-state">
+                        🔄 Cargando nombres...
                     </div>
                 </div>
             </div>
@@ -402,26 +328,21 @@
         const auth = firebase.auth();
 
         // Variables globales
-        const ADMIN_PASSWORD = "wbcaller123"; // Cambiar por tu contraseña
-        const GUILD_NAME = "Morgana Enjoyers";
-        const GUILD_API_URL = "https://gameinfo.albiononline.com/api/gameinfo/guilds/yKUUaSnNR7irOoIE8TnKVg/members"; // API oficial del gremio
-        
+        const ADMIN_PASSWORD = "admin123"; // Cambia esta contraseña
         let isAdminLoggedIn = false;
-        let members = [];
-        let autoSyncInterval = null;
+        let names = [];
         let unsubscribe = null;
 
         // Inicializar cuando la página carga
         window.addEventListener('load', function() {
-            console.log('🚀 Inicializando aplicación...');
+            console.log('Página cargada, inicializando Firebase...');
             initializeAuth();
             setupRealtimeListener();
-            loadLastSyncTime();
         });
 
         // ============= AUTENTICACIÓN =============
         function initializeAuth() {
-            console.log('🔐 Iniciando autenticación...');
+            console.log('Iniciando autenticación...');
             auth.signInAnonymously()
                 .then(() => {
                     console.log('✅ Autenticado correctamente con Firebase');
@@ -444,538 +365,73 @@
             }
         }
 
-        // ============= SINCRONIZACIÓN CON API OFICIAL DE ALBION =============
-        async function syncGuildMembers() {
-            showMessage('syncMessage', '🔄 Sincronizando con API oficial de Albion...', 'loading');
-            
-            try {
-                console.log('🌐 Obteniendo miembros del gremio desde API oficial...');
-                console.log('🔗 API URL:', GUILD_API_URL);
-                
-                // La API oficial de Albion permite CORS, así que podemos llamarla directamente
-                const response = await fetch(GUILD_API_URL, {
-                    method: 'GET',
-                    headers: {
-                        'Accept': 'application/json',
-                        'Content-Type': 'application/json'
-                    }
-                });
-                
-                if (!response.ok) {
-                    throw new Error(`Error HTTP ${response.status}: ${response.statusText}`);
-                }
-                
-                const guildData = await response.json();
-                console.log('📊 Datos de API recibidos:', guildData);
-                
-                if (!Array.isArray(guildData)) {
-                    throw new Error('La respuesta de la API no es un array válido');
-                }
-                
-                // Extraer nombres de los miembros
-                const currentMembers = guildData.map(member => member.Name).filter(name => name && name.trim().length > 0);
-                
-                console.log(`✅ Total miembros encontrados: ${currentMembers.length}`);
-                console.log('👥 Lista de miembros:', currentMembers);
-                
-                if (currentMembers.length === 0) {
-                    throw new Error('No se encontraron miembros en la respuesta de la API');
-                }
-                
-                // Actualizar base de datos con miembros actuales
-                await updateMembersInDatabase(currentMembers);
-                
-                // Guardar timestamp de última sincronización
-                await saveLastSyncTime();
-                loadLastSyncTime();
-                
-                showMessage('syncMessage', `✅ Sincronización completada: ${currentMembers.length} miembros actualizados desde API oficial de Albion`, 'success');
-                
-            } catch (error) {
-                console.error('❌ Error al sincronizar:', error);
-                showMessage('syncMessage', `❌ Error: ${error.message}`, 'error');
-                
-                // Método de respaldo: usar lista manual si falla
-                console.log('🔄 Intentando método de respaldo...');
-                await tryAlternativeMethod();
-            }
-        }
-
-        // Función para debug de la API oficial
-        async function debugAlbionAPI() {
-            console.log('🔍 DEBUG: Analizando API oficial de Albion...');
-            showMessage('syncMessage', '🔍 Analizando API oficial de Albion...', 'loading');
-            
-            try {
-                console.log('🔗 API URL:', GUILD_API_URL);
-                
-                const response = await fetch(GUILD_API_URL, {
-                    method: 'GET',
-                    headers: {
-                        'Accept': 'application/json',
-                        'Content-Type': 'application/json'
-                    }
-                });
-                
-                console.log('📄 Status:', response.status);
-                console.log('📄 Status Text:', response.statusText);
-                console.log('📄 Headers:', [...response.headers.entries()]);
-                
-                if (!response.ok) {
-                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-                }
-                
-                const guildData = await response.json();
-                console.log('📊 Respuesta completa de la API:', guildData);
-                
-                if (!Array.isArray(guildData)) {
-                    console.log('❌ La respuesta no es un array:', typeof guildData);
-                    throw new Error('La respuesta de la API no es un array válido');
-                }
-                
-                console.log(`📊 Total miembros en API: ${guildData.length}`);
-                
-                // Analizar estructura de un miembro
-                if (guildData.length > 0) {
-                    console.log('👤 Estructura del primer miembro:', guildData[0]);
-                    console.log('🔑 Propiedades disponibles:', Object.keys(guildData[0]));
-                }
-                
-                // Extraer nombres
-                const memberNames = guildData.map(member => member.Name).filter(name => name && name.trim().length > 0);
-                console.log(`👥 Nombres extraídos: ${memberNames.length}`);
-                console.log('📝 Lista de nombres:', memberNames);
-                
-                // Información adicional disponible
-                const sampleMembers = guildData.slice(0, 5).map(member => ({
-                    name: member.Name,
-                    id: member.Id,
-                    joinDate: member.JoinDate,
-                    // Agregar otras propiedades que puedan ser útiles
-                }));
-                
-                const debugInfo = `
-API OFICIAL DE ALBION - MORGANA ENJOYERS:
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-🔗 API: ${GUILD_API_URL}
-✅ Respuesta exitosa (HTTP ${response.status})
-📊 Total miembros: ${guildData.length}
-👥 Nombres válidos: ${memberNames.length}
-
-🎯 PRIMEROS 10 MIEMBROS:
-${memberNames.slice(0, 10).map((name, i) => `${i+1}. ${name}`).join('\n')}
-${memberNames.length > 10 ? `\n...y ${memberNames.length - 10} más` : ''}
-
-🔍 Ver consola para datos completos
-                `;
-                
-                showMessage('syncMessage', `✅ API funcionando correctamente: ${memberNames.length} miembros encontrados`, 'success');
-                alert(debugInfo);
-                
-                return { 
-                    success: true, 
-                    members: memberNames, 
-                    totalCount: guildData.length,
-                    rawData: guildData 
-                };
-                
-            } catch (error) {
-                console.error('❌ Error al acceder a la API:', error);
-                showMessage('syncMessage', `❌ Error: ${error.message}`, 'error');
-                
-                const errorInfo = `
-❌ ERROR DE API:
-━━━━━━━━━━━━━━━━━━━━━━━━
-
-🔗 URL: ${GUILD_API_URL}
-❌ Error: ${error.message}
-
-Posibles causas:
-• El ID del gremio cambió
-• La API está temporalmente inaccesible
-• Problemas de conectividad
-
-Ver consola para más detalles.
-                `;
-                
-                alert(errorInfo);
-                return { success: false, members: [], error: error.message };
-            }
-        }
-
-        async function tryAlternativeMethod() {
-            // Intentar método alternativo usando API de Albion oficial si está disponible
-            console.log('🔄 Intentando método alternativo...');
-            
-            try {
-                // Este es un método de respaldo que podrías implementar
-                // Por ahora, creamos algunos miembros de ejemplo para que funcione
-                const exampleMembers = [
-                    'TestPlayer1', 'TestPlayer2', 'TestPlayer3', 'TestPlayer4', 'TestPlayer5'
-                ];
-                
-                await updateMembersInDatabase(exampleMembers);
-                showMessage('syncMessage', `⚠️ Usando datos de ejemplo: ${exampleMembers.length} miembros. Por favor sincroniza manualmente cuando sea posible.`, 'warning');
-                
-            } catch (alternativeError) {
-                console.error('❌ Error en método alternativo:', alternativeError);
-                showMessage('syncMessage', '❌ No se pudo sincronizar. Intenta nuevamente más tarde.', 'error');
-            }
-        }
-
-        // Función para test de la API
-        async function testAPIExtraction() {
-            console.log('🧪 TEST: Extracción desde API oficial...');
-            showMessage('syncMessage', '🧪 Probando API oficial...', 'loading');
-            
-            try {
-                console.log('🔗 API URL:', GUILD_API_URL);
-                
-                const response = await fetch(GUILD_API_URL);
-                const guildData = await response.json();
-                
-                const extractedMembers = guildData.map(member => member.Name).filter(name => name && name.trim().length > 0);
-                
-                if (extractedMembers.length > 0) {
-                    console.log('✅ Extracción exitosa:', extractedMembers);
-                    showMessage('syncMessage', `✅ API funcionando: ${extractedMembers.length} miembros encontrados`, 'success');
-                    
-                    const alertMessage = `
-🎯 MIEMBROS DESDE API OFICIAL:
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-📊 Total: ${extractedMembers.length} miembros
-
-👥 LISTA COMPLETA:
-${extractedMembers.map((name, i) => `${i+1}. ${name}`).join('\n')}
-
-✅ Datos obtenidos directamente de la API oficial de Albion Online
-
-¿Proceder con la sincronización?
-                    `;
-                    
-                    alert(alertMessage);
-                    
-                    // Preguntar si quiere sincronizar ahora
-                    const shouldSync = confirm('¿Actualizar la base de datos con estos miembros?');
-                    if (shouldSync) {
-                        await updateMembersInDatabase(extractedMembers);
-                        await saveLastSyncTime();
-                        loadLastSyncTime();
-                        showMessage('syncMessage', `✅ Base de datos actualizada con ${extractedMembers.length} miembros desde API oficial`, 'success');
-                    }
-                    
-                    return extractedMembers;
-                } else {
-                    throw new Error('No se encontraron miembros válidos en la respuesta de la API');
-                }
-                
-            } catch (error) {
-                console.error('❌ Error en test de API:', error);
-                showMessage('syncMessage', `❌ Error: ${error.message}`, 'error');
-                alert(`❌ Error al acceder a la API: ${error.message}`);
-                return [];
-            }
-        }
-
-        async function testSpecificExtraction() {
-            console.log('🧪 TEST: Extracción específica de miembros...');
-            showMessage('syncMessage', '🧪 Probando extracción específica...', 'loading');
-            
-            try {
-                console.log('🔗 URL objetivo:', GUILD_URL);
-                const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(GUILD_URL)}`;
-                
-                const response = await fetch(proxyUrl);
-                const htmlText = await response.text();
-                
-                console.log('📄 HTML obtenido, tamaño:', htmlText.length);
-                
-                // Usar nuestra función de extracción
-                const parser = new DOMParser();
-                const doc = parser.parseFromString(htmlText, 'text/html');
-                
-                const extractedMembers = await extractMembersFromHTML(doc, htmlText);
-                
-                if (extractedMembers.length > 0) {
-                    console.log('✅ Extracción exitosa:', extractedMembers);
-                    showMessage('syncMessage', `✅ Extracción exitosa: ${extractedMembers.length} miembros encontrados`, 'success');
-                    
-                    const membersList = extractedMembers.slice(0, 20).join(', ');
-                    const alertMessage = `
-🎯 MIEMBROS EXTRAÍDOS DE MORGANA ENJOYERS:
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-📊 Total encontrados: ${extractedMembers.length}
-
-👥 LISTA DE MIEMBROS:
-${extractedMembers.slice(0, 20).map((name, i) => `${i+1}. ${name}`).join('\n')}
-${extractedMembers.length > 20 ? `\n...y ${extractedMembers.length - 20} más` : ''}
-
-¿Proceder con la sincronización?
-                    `;
-                    
-                    alert(alertMessage);
-                    
-                    // Preguntar si quiere sincronizar ahora
-                    const shouldSync = confirm('¿Actualizar la base de datos con estos miembros?');
-                    if (shouldSync) {
-                        await updateMembersInDatabase(extractedMembers);
-                        await saveLastSyncTime();
-                        loadLastSyncTime();
-                        showMessage('syncMessage', `✅ Base de datos actualizada con ${extractedMembers.length} miembros`, 'success');
-                    }
-                    
-                    return extractedMembers;
-                } else {
-                    console.log('❌ No se extrajeron miembros');
-                    showMessage('syncMessage', '❌ No se pudieron extraer miembros', 'error');
-                    alert('❌ No se pudieron extraer miembros de la página.\n\nPosibles causas:\n- La página no cargó correctamente\n- El formato de AlbionDB cambió\n- Problemas de conectividad\n\nVer consola (F12) para más detalles.');
-                    return [];
-                }
-                
-            } catch (error) {
-                console.error('❌ Error en test de extracción:', error);
-                showMessage('syncMessage', `❌ Error: ${error.message}`, 'error');
-                alert(`❌ Error en test de extracción: ${error.message}`);
-                return [];
-            }
-        }
-
-        async function testDirectAccess() {
-            console.log('🌐 TEST: Acceso directo a API oficial...');
-            showMessage('syncMessage', '🌐 Probando acceso directo a API...', 'loading');
-            
-            try {
-                // Probar acceso directo a la API oficial
-                const response = await fetch(GUILD_API_URL, {
-                    method: 'GET',
-                    headers: {
-                        'Accept': 'application/json',
-                        'Content-Type': 'application/json'
-                    }
-                });
-                
-                console.log('✅ Status:', response.status);
-                console.log('✅ Headers:', [...response.headers.entries()]);
-                
-                if (response.ok) {
-                    const data = await response.json();
-                    console.log('✅ Datos recibidos:', data);
-                    
-                    showMessage('syncMessage', `✅ API accesible directamente: ${data.length} miembros`, 'success');
-                    
-                    const testInfo = `
-🌐 TEST DE ACCESO DIRECTO:
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-✅ API oficial completamente accesible
-🔗 URL: ${GUILD_API_URL}
-📊 HTTP Status: ${response.status} (${response.statusText})
-👥 Total miembros: ${data.length}
-
-🎯 La API oficial de Albion funciona perfectamente
-🚀 No necesitamos proxies CORS
-✨ Datos JSON limpios y confiables
-
-¡Todo listo para usar!
-                    `;
-                    
-                    alert(testInfo);
-                } else {
-                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-                }
-                
-            } catch (error) {
-                console.error('❌ Error de acceso:', error);
-                showMessage('syncMessage', `❌ Error: ${error.message}`, 'error');
-                
-                const errorInfo = `
-❌ ERROR DE ACCESO DIRECTO:
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-🔗 URL: ${GUILD_API_URL}
-❌ Error: ${error.message}
-
-Posibles causas:
-• El ID del gremio ha cambiado
-• La API está temporalmente inaccesible
-• Problemas de red/CORS
-
-Recomendación: Verificar el ID del gremio actual
-                `;
-                
-                alert(errorInfo);
-            }
-        }
-
-        async function updateMembersInDatabase(currentMembers) {
-            const batch = db.batch();
-            const now = new Date();
-            
-            // Obtener miembros existentes
-            const existingSnapshot = await db.collection('members').get();
-            const existingMembers = new Map();
-            
-            existingSnapshot.forEach(doc => {
-                existingMembers.set(doc.data().name, {id: doc.id, data: doc.data()});
-            });
-            
-            // Procesar miembros actuales
-            for (let memberName of currentMembers) {
-                const memberRef = db.collection('members').doc();
-                
-                if (existingMembers.has(memberName)) {
-                    // Miembro existente: mantener sus datos actuales
-                    console.log(`🔄 Manteniendo datos de: ${memberName}`);
-                } else {
-                    // Nuevo miembro: crear con contador completo
-                    console.log(`➕ Nuevo miembro: ${memberName}`);
-                    batch.set(memberRef, {
-                        name: memberName,
-                        lastAttendance: null,
-                        daysWithoutAttending: 0,
-                        canGoWB: true,
-                        isActive: true,
-                        joinedDate: now,
-                        lastUpdated: now
-                    });
-                }
-            }
-            
-            // Marcar miembros que ya no están en el gremio como inactivos
-            for (let [memberName, memberInfo] of existingMembers) {
-                if (!currentMembers.includes(memberName) && memberInfo.data.isActive) {
-                    console.log(`❌ Miembro ya no está en el gremio: ${memberName}`);
-                    const memberRef = db.collection('members').doc(memberInfo.id);
-                    batch.update(memberRef, {
-                        isActive: false,
-                        leftDate: now,
-                        lastUpdated: now
-                    });
-                }
-            }
-            
-            await batch.commit();
-            console.log('✅ Base de datos actualizada');
-        }
-
-        async function saveLastSyncTime() {
-            const now = new Date();
-            await db.collection('settings').doc('lastSync').set({
-                timestamp: now,
-                date: now.toISOString()
-            });
-        }
-
-        async function loadLastSyncTime() {
-            try {
-                const doc = await db.collection('settings').doc('lastSync').get();
-                if (doc.exists) {
-                    const data = doc.data();
-                    const date = data.timestamp ? data.timestamp.toDate() : new Date(data.date);
-                    document.getElementById('lastSyncTime').textContent = 
-                        `Última sincronización: ${date.toLocaleString('es-ES')}`;
-                }
-            } catch (error) {
-                console.log('No hay registro de sincronización anterior');
-            }
-        }
-
-        // ============= AUTO-SYNC =============
-        function toggleAutoSync() {
-            if (autoSyncInterval) {
-                clearInterval(autoSyncInterval);
-                autoSyncInterval = null;
-                document.getElementById('autoSyncText').textContent = '🤖 Activar Auto-Sync';
-                showMessage('syncMessage', 'Auto-sincronización desactivada', 'warning');
-            } else {
-                // Sincronizar cada 24 horas (86400000 ms)
-                autoSyncInterval = setInterval(syncGuildMembers, 24 * 60 * 60 * 1000);
-                document.getElementById('autoSyncText').textContent = '🛑 Desactivar Auto-Sync';
-                showMessage('syncMessage', 'Auto-sincronización activada (cada 24h)', 'success');
-            }
-        }
-
         // ============= FIRESTORE EN TIEMPO REAL =============
         function setupRealtimeListener() {
-            console.log('📡 Configurando listener en tiempo real...');
+            console.log('Configurando listener en tiempo real...');
             
-            unsubscribe = db.collection('members')
-                .where('isActive', '==', true)
+            // Primero intentar crear la colección si no existe
+            db.collection('names').get()
+                .then((snapshot) => {
+                    console.log('✅ Colección accesible, documentos:', snapshot.size);
+                })
+                .catch((error) => {
+                    console.log('⚠️ Error accediendo colección:', error);
+                });
+            
+            unsubscribe = db.collection('names')
+                .orderBy('timestamp', 'asc')
                 .onSnapshot((snapshot) => {
-                    console.log('📊 Datos de miembros recibidos');
-                    members = [];
+                    console.log('📡 Datos recibidos desde Firestore');
+                    names = [];
+                    const now = new Date();
+                    const expiredNames = []; // Para eliminar nombres vencidos
                     
                     snapshot.forEach((doc) => {
                         const data = doc.data();
-                        members.push({
-                            id: doc.id,
-                            ...data
-                        });
+                        const nameTimestamp = data.timestamp ? data.timestamp.toDate() : new Date();
+                        const hoursSinceAdded = (now - nameTimestamp) / (1000 * 60 * 60);
+                        
+                        if (hoursSinceAdded >= 24) {
+                            // Nombre expirado, marcarlo para eliminación
+                            expiredNames.push({id: doc.id, name: data.name});
+                            console.log(`⏰ Nombre "${data.name}" expirado (${Math.round(hoursSinceAdded)} horas)`);
+                        } else {
+                            // Nombre válido, agregarlo a la lista
+                            names.push({
+                                id: doc.id,
+                                name: data.name,
+                                timestamp: data.timestamp,
+                                hoursLeft: Math.round(24 - hoursSinceAdded)
+                            });
+                        }
                     });
                     
-                    // Actualizar contadores diariamente
-                    updateDailyCounters();
+                    // Eliminar nombres expirados automáticamente
+                    expiredNames.forEach(expiredName => {
+                        deleteExpiredName(expiredName.id, expiredName.name);
+                    });
+                    
+                    console.log('Total nombres válidos:', names.length);
+                    console.log('Nombres expirados eliminados:', expiredNames.length);
                     updateDisplay();
-                    updateStats();
                 }, (error) => {
                     console.error('❌ Error al escuchar cambios:', error);
+                    console.error('Error code:', error.code);
+                    console.error('Error message:', error.message);
                     showMessage('adminMessage', 'Error de conexión: ' + error.message, 'error');
                 });
         }
 
-        function updateDailyCounters() {
-            const now = new Date();
-            const batch = db.batch();
-            let hasUpdates = false;
-            
-            members.forEach(member => {
-                let needsUpdate = false;
-                let newDaysWithoutAttending = member.daysWithoutAttending || 0;
-                
-                // Si no tiene registro de última asistencia, empezar a contar
-                if (!member.lastAttendance) {
-                    const daysSinceJoined = member.joinedDate ? 
-                        Math.floor((now - member.joinedDate.toDate()) / (1000 * 60 * 60 * 24)) : 0;
-                    
-                    if (daysSinceJoined > 0) {
-                        newDaysWithoutAttending = Math.min(daysSinceJoined, 7);
-                        needsUpdate = true;
-                    }
-                } else {
-                    // Calcular días desde última asistencia
-                    const daysSinceAttendance = Math.floor((now - member.lastAttendance.toDate()) / (1000 * 60 * 60 * 24));
-                    
-                    if (daysSinceAttendance !== newDaysWithoutAttending) {
-                        newDaysWithoutAttending = Math.min(daysSinceAttendance, 7);
-                        needsUpdate = true;
-                    }
-                }
-                
-                // Determinar si puede ir al WB
-                const canGoWB = newDaysWithoutAttending < 7;
-                
-                if (needsUpdate || member.canGoWB !== canGoWB) {
-                    const memberRef = db.collection('members').doc(member.id);
-                    batch.update(memberRef, {
-                        daysWithoutAttending: newDaysWithoutAttending,
-                        canGoWB: canGoWB,
-                        lastUpdated: now
-                    });
-                    hasUpdates = true;
-                }
-            });
-            
-            if (hasUpdates) {
-                batch.commit().then(() => {
-                    console.log('🔄 Contadores actualizados');
-                }).catch(error => {
-                    console.error('❌ Error actualizando contadores:', error);
-                });
+        // Función para eliminar nombres expirados
+        async function deleteExpiredName(nameId, nameText) {
+            try {
+                await db.collection('names').doc(nameId).delete();
+                console.log(`🗑️ Eliminado automáticamente: "${nameText}"`);
+            } catch (error) {
+                console.error('❌ Error al eliminar nombre expirado:', error);
             }
         }
+        // Eliminar la llave de cierre extra que estaba aquí
 
         // ============= FUNCIONES DE ADMIN =============
         function login() {
@@ -986,9 +442,9 @@ Recomendación: Verificar el ID del gremio actual
                 document.getElementById('loginSection').style.display = 'none';
                 document.getElementById('adminSection').style.display = 'block';
                 updateDisplay();
-                showMessage('loginMessage', 'Acceso concedido - WB Caller autenticado', 'success');
+                showMessage('loginMessage', 'Acceso concedido correctamente', 'success');
                 document.getElementById('adminPassword').value = '';
-                console.log('👑 WB Caller logueado');
+                console.log('👑 Admin logueado');
             } else {
                 showMessage('loginMessage', 'Contraseña incorrecta', 'error');
                 console.log('❌ Contraseña incorrecta');
@@ -1000,203 +456,107 @@ Recomendación: Verificar el ID del gremio actual
             document.getElementById('loginSection').style.display = 'block';
             document.getElementById('adminSection').style.display = 'none';
             document.getElementById('adminPassword').value = '';
+            document.getElementById('nameInput').value = '';
             updateDisplay();
-            console.log('👋 WB Caller cerró sesión');
+            console.log('👋 Admin cerró sesión');
         }
 
-        // ============= ACCIONES DE MIEMBROS =============
-        async function markAttended(memberId, memberName) {
-            if (!isAdminLoggedIn) return;
+        // ============= CRUD OPERATIONS =============
+        async function addName() {
+            if (!isAdminLoggedIn) {
+                showMessage('adminMessage', 'No tienes permisos de administrador', 'error');
+                return;
+            }
+
+            const nameInput = document.getElementById('nameInput');
+            const name = nameInput.value.trim();
             
+            if (name === '') {
+                showMessage('adminMessage', 'Por favor ingresa un nombre', 'error');
+                return;
+            }
+
+            // Verificar si ya existe
+            const existingName = names.find(n => n.name.toLowerCase() === name.toLowerCase());
+            if (existingName) {
+                showMessage('adminMessage', 'Este nombre ya existe en la lista', 'error');
+                return;
+            }
+
             try {
-                await db.collection('members').doc(memberId).update({
-                    lastAttendance: new Date(),
-                    daysWithoutAttending: 0,
-                    canGoWB: true,
-                    lastUpdated: new Date()
-                });
+                console.log('📝 Agregando nombre:', name);
+                showMessage('adminMessage', 'Agregando nombre...', 'loading');
                 
-                showMessage('adminMessage', `✅ ${memberName} marcado como asistió al WB`, 'success');
-                console.log(`✅ ${memberName} asistió al WB`);
+                await db.collection('names').add({
+                    name: name,
+                    timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+                    addedBy: 'admin'
+                });
+
+                nameInput.value = '';
+                showMessage('adminMessage', `"${name}" agregado correctamente`, 'success');
+                console.log('✅ Nombre agregado exitosamente');
             } catch (error) {
-                console.error('❌ Error:', error);
-                showMessage('adminMessage', 'Error al actualizar: ' + error.message, 'error');
+                console.error('❌ Error al agregar nombre:', error);
+                showMessage('adminMessage', 'Error al agregar: ' + error.message, 'error');
             }
         }
 
-        async function resetMember(memberId, memberName) {
-            if (!isAdminLoggedIn) return;
-            
-            try {
-                await db.collection('members').doc(memberId).update({
-                    lastAttendance: new Date(),
-                    daysWithoutAttending: 0,
-                    canGoWB: true,
-                    lastUpdated: new Date()
-                });
-                
-                showMessage('adminMessage', `🔄 ${memberName} reseteado`, 'success');
-                console.log(`🔄 ${memberName} reseteado`);
-            } catch (error) {
-                console.error('❌ Error:', error);
-                showMessage('adminMessage', 'Error al resetear: ' + error.message, 'error');
+        async function removeName(nameId, nameText) {
+            if (!isAdminLoggedIn) {
+                return;
             }
-        }
 
-        async function markAllAttended() {
-            if (!isAdminLoggedIn) return;
-            
-            const confirmed = confirm('¿Marcar TODOS los miembros como que asistieron al WB?');
-            if (!confirmed) return;
-            
             try {
-                const batch = db.batch();
-                const now = new Date();
+                console.log('🗑️ Eliminando nombre:', nameText);
+                showMessage('adminMessage', 'Eliminando nombre...', 'loading');
                 
-                members.forEach(member => {
-                    const memberRef = db.collection('members').doc(member.id);
-                    batch.update(memberRef, {
-                        lastAttendance: now,
-                        daysWithoutAttending: 0,
-                        canGoWB: true,
-                        lastUpdated: now
-                    });
-                });
+                await db.collection('names').doc(nameId).delete();
                 
-                await batch.commit();
-                showMessage('adminMessage', '✅ Todos los miembros marcados como asistieron', 'success');
-                console.log('✅ Todos marcados como asistieron');
+                showMessage('adminMessage', `"${nameText}" eliminado correctamente`, 'success');
+                console.log('✅ Nombre eliminado exitosamente');
             } catch (error) {
-                console.error('❌ Error:', error);
-                showMessage('adminMessage', 'Error al actualizar todos: ' + error.message, 'error');
-            }
-        }
-
-        async function resetAllCounters() {
-            if (!isAdminLoggedIn) return;
-            
-            const confirmed = confirm('¿RESETEAR todos los contadores? Esto dará permiso a todos para ir al WB.');
-            if (!confirmed) return;
-            
-            try {
-                const batch = db.batch();
-                const now = new Date();
-                
-                members.forEach(member => {
-                    const memberRef = db.collection('members').doc(member.id);
-                    batch.update(memberRef, {
-                        lastAttendance: now,
-                        daysWithoutAttending: 0,
-                        canGoWB: true,
-                        lastUpdated: now
-                    });
-                });
-                
-                await batch.commit();
-                showMessage('adminMessage', '🔄 Todos los contadores reseteados', 'success');
-                console.log('🔄 Todos los contadores reseteados');
-            } catch (error) {
-                console.error('❌ Error:', error);
-                showMessage('adminMessage', 'Error al resetear todos: ' + error.message, 'error');
+                console.error('❌ Error al eliminar nombre:', error);
+                showMessage('adminMessage', 'Error al eliminar: ' + error.message, 'error');
             }
         }
 
         // ============= UI FUNCTIONS =============
         function updateDisplay() {
-            const membersDiv = document.getElementById('membersList');
+            const nameListDiv = document.getElementById('nameList');
             
-            if (members.length === 0) {
-                membersDiv.innerHTML = `
-                    <div style="grid-column: 1 / -1; text-align: center; padding: 40px; color: #666; font-style: italic;">
-                        No hay miembros cargados aún<br>
-                        <button class="btn btn-info" onclick="syncGuildMembers()" style="margin-top: 15px;">
-                            🔄 Sincronizar con AlbionDB
-                        </button>
-                    </div>
-                `;
+            if (names.length === 0) {
+                nameListDiv.innerHTML = '<div class="empty-state">No hay nombres en la lista aún</div>';
                 return;
             }
 
-            // Ordenar miembros: primero los que no pueden ir WB, luego por días sin asistir
-            const sortedMembers = [...members].sort((a, b) => {
-                if (a.canGoWB !== b.canGoWB) {
-                    return a.canGoWB ? 1 : -1; // Los que no pueden ir al WB primero
-                }
-                return (b.daysWithoutAttending || 0) - (a.daysWithoutAttending || 0);
-            });
-
             let html = '';
-            sortedMembers.forEach(member => {
-                const days = member.daysWithoutAttending || 0;
-                const canGo = member.canGoWB !== false;
-                
-                let statusClass = 'success';
-                let statusText = '✅ Puede ir al WB';
-                let badgeClass = 'badge-ok';
-                let badgeText = 'OK';
-                
-                if (days >= 7) {
-                    statusClass = 'danger';
-                    statusText = '❌ NO puede ir al WB';
-                    badgeClass = 'badge-danger';
-                    badgeText = 'BLOQUEADO';
-                } else if (days >= 5) {
-                    statusClass = 'warning';
-                    statusText = '⚠️ Advertencia final';
-                    badgeClass = 'badge-warning';
-                    badgeText = 'ADVERTENCIA';
-                } else if (days >= 3) {
-                    statusClass = 'warning';
-                    statusText = '⚠️ En advertencia';
-                    badgeClass = 'badge-warning';
-                    badgeText = `${days} días`;
-                } else if (days > 0) {
-                    badgeText = `${days} días`;
+            names.forEach(nameObj => {
+                // Mejorar la visualización del tiempo restante
+                let timeInfo = '';
+                if (nameObj.hoursLeft) {
+                    const hours = nameObj.hoursLeft;
+                    if (hours < 1) {
+                        timeInfo = `<small style="color: #dc3545; font-size: 12px; font-weight: bold;">⏰ (Menos de 1h restante)</small>`;
+                    } else if (hours < 6) {
+                        timeInfo = `<small style="color: #fd7e14; font-size: 12px; font-weight: bold;">⏰ (${hours}h restantes)</small>`;
+                    } else {
+                        timeInfo = `<small style="color: #28a745; font-size: 12px;">⏰ (${hours}h restantes)</small>`;
+                    }
                 }
-                
-                const lastAttendanceText = member.lastAttendance ? 
-                    member.lastAttendance.toDate().toLocaleDateString('es-ES') : 
-                    'Nunca';
                 
                 html += `
-                    <div class="member-item ${statusClass}">
-                        <div class="member-badge ${badgeClass}">${badgeText}</div>
-                        <div class="member-name">${escapeHtml(member.name)}</div>
-                        <div class="member-status">
-                            <strong>${statusText}</strong><br>
-                            Días sin ir: ${days}/7<br>
-                            Última vez: ${lastAttendanceText}
+                    <div class="name-item">
+                        <div>
+                            <span class="name-text">${escapeHtml(nameObj.name)}</span>
+                            ${timeInfo}
                         </div>
-                        ${isAdminLoggedIn ? `
-                            <div class="member-controls">
-                                <button class="btn btn-success" onclick="markAttended('${member.id}', '${escapeHtml(member.name)}')">
-                                    ✅ Asistió
-                                </button>
-                                <button class="btn btn-warning" onclick="resetMember('${member.id}', '${escapeHtml(member.name)}')">
-                                    🔄 Reset
-                                </button>
-                            </div>
-                        ` : ''}
+                        ${isAdminLoggedIn ? `<button class="btn btn-danger" onclick="removeName('${nameObj.id}', '${escapeHtml(nameObj.name)}')">🗑️ Eliminar</button>` : ''}
                     </div>
                 `;
             });
             
-            membersDiv.innerHTML = html;
-        }
-
-        function updateStats() {
-            const total = members.length;
-            const active = members.filter(m => m.canGoWB !== false && (m.daysWithoutAttending || 0) < 7).length;
-            const warning = members.filter(m => {
-                const days = m.daysWithoutAttending || 0;
-                return days >= 3 && days < 7;
-            }).length;
-            const banned = members.filter(m => (m.daysWithoutAttending || 0) >= 7).length;
-            
-            document.getElementById('totalMembers').textContent = total;
-            document.getElementById('activeMembers').textContent = active;
-            document.getElementById('warningMembers').textContent = warning;
-            document.getElementById('bannedMembers').textContent = banned;
+            nameListDiv.innerHTML = html;
         }
 
         function showMessage(elementId, message, type) {
@@ -1206,7 +566,7 @@ Recomendación: Verificar el ID del gremio actual
             if (type !== 'loading') {
                 setTimeout(() => {
                     element.innerHTML = '';
-                }, 5000);
+                }, 3000);
             }
         }
 
@@ -1223,6 +583,12 @@ Recomendación: Verificar el ID del gremio actual
                     login();
                 }
             });
+
+            document.getElementById('nameInput').addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    addName();
+                }
+            });
         });
 
         // Limpiar listener al cerrar la página
@@ -1230,13 +596,10 @@ Recomendación: Verificar el ID del gremio actual
             if (unsubscribe) {
                 unsubscribe();
             }
-            if (autoSyncInterval) {
-                clearInterval(autoSyncInterval);
-            }
         });
 
-        // Log inicial
-        console.log('🚀 Sistema World Boss cargado, esperando inicialización...');
+        // Log inicial para debugging
+        console.log('🚀 Script cargado, esperando inicialización...');
     </script>
 </body>
 </html>
