@@ -339,7 +339,8 @@
                         <span id="autoSyncText">🤖 Activar Auto-Sync</span>
                     </button>
                     <button class="btn btn-warning" onclick="debugAlbionDBPage()">🔍 Debug Página</button>
-                    <button class="btn btn-primary" onclick="testDirectAccess()">🌐 Test Acceso Directo</button>
+                    <button class="btn btn-primary" onclick="testDirectAccess()">🌐 Test Proxies</button>
+                    <button class="btn btn-danger" onclick="testSpecificExtraction()">🧪 Test Extracción</button>
                 </div>
                 <div id="syncMessage"></div>
                 <div class="last-sync" id="lastSyncTime">Última sincronización: Nunca</div>
@@ -522,131 +523,179 @@
         async function extractMembersFromHTML(doc, htmlText) {
             const currentMembers = [];
             
-            // MÉTODO 1: Buscar sección "Current Guild Members"
-            console.log('🔍 Método 1: Buscando sección "Current Guild Members"');
+            console.log('🔍 Extrayendo miembros de HTML (longitud:', htmlText.length, 'caracteres)');
             
-            // Buscar el texto "Current Guild Members" en cualquier elemento
-            const allElements = doc.querySelectorAll('*');
-            let currentMembersSection = null;
+            // MÉTODO 1: Buscar específicamente la estructura de AlbionDB
+            console.log('🔍 Método 1: Buscando estructura específica de AlbionDB');
             
-            for (let element of allElements) {
-                if (element.textContent && element.textContent.includes('Current Guild Members')) {
-                    currentMembersSection = element;
-                    console.log('✅ Encontrada sección "Current Guild Members"');
-                    break;
-                }
-            }
-            
-            if (currentMembersSection) {
-                // Buscar la tabla o lista después de esta sección
-                let nextElement = currentMembersSection.nextElementSibling;
-                let attempts = 0;
+            try {
+                // Buscar el patrón específico de AlbionDB: "Current Guild Members" seguido de tabla
+                const currentMembersRegex = /Current Guild Members[\s\S]*?(?=Previous Guild Members|$)/i;
+                const currentMembersMatch = htmlText.match(currentMembersRegex);
                 
-                while (nextElement && attempts < 10) {
-                    const playerLinks = nextElement.querySelectorAll('a[href*="/player/"]');
+                if (currentMembersMatch) {
+                    console.log('✅ Encontrada sección Current Guild Members');
+                    const currentMembersSection = currentMembersMatch[0];
+                    console.log('📄 Sección extraída (primeros 500 chars):', currentMembersSection.substring(0, 500));
                     
-                    if (playerLinks.length > 0) {
-                        console.log(`🎯 Encontrados ${playerLinks.length} enlaces de jugadores en la sección`);
-                        
-                        for (let link of playerLinks) {
-                            const playerName = link.textContent.trim();
-                            if (playerName && playerName.length > 0 && !currentMembers.includes(playerName)) {
-                                currentMembers.push(playerName);
-                                console.log(`👤 Miembro encontrado (Método 1): ${playerName}`);
-                            }
+                    // Buscar enlaces de jugadores en esta sección específica
+                    const playerLinkRegex = /<a[^>]+href="[^"]*\/player\/([^"]*)"[^>]*>([^<]+)<\/a>/gi;
+                    let match;
+                    
+                    while ((match = playerLinkRegex.exec(currentMembersSection)) !== null) {
+                        const playerName = match[2].trim();
+                        if (playerName && playerName.length > 0 && !currentMembers.includes(playerName)) {
+                            currentMembers.push(playerName);
+                            console.log(`👤 Miembro encontrado (Método 1): ${playerName}`);
                         }
-                        break;
                     }
-                    
-                    nextElement = nextElement.nextElementSibling;
-                    attempts++;
                 }
+            } catch (error) {
+                console.log('⚠️ Error en Método 1:', error);
             }
             
-            // MÉTODO 2: Buscar en el HTML crudo con regex
+            // MÉTODO 2: Buscar patrones de tabla después de "Current Guild Members"
             if (currentMembers.length === 0) {
-                console.log('🔍 Método 2: Análisis con regex del HTML crudo');
+                console.log('🔍 Método 2: Buscando tabla después de Current Guild Members');
                 
                 try {
-                    // Buscar patrones de enlaces de jugadores después de "Current Guild Members"
-                    const currentMembersIndex = htmlText.indexOf('Current Guild Members');
-                    if (currentMembersIndex !== -1) {
-                        const afterCurrentMembers = htmlText.substring(currentMembersIndex);
+                    const currentIndex = htmlText.indexOf('Current Guild Members');
+                    if (currentIndex !== -1) {
+                        console.log('✅ Texto "Current Guild Members" encontrado en posición:', currentIndex);
                         
-                        // Regex para enlaces de jugadores
+                        // Tomar los siguientes 5000 caracteres después de "Current Guild Members"
+                        const afterCurrent = htmlText.substring(currentIndex, currentIndex + 5000);
+                        console.log('📄 Contenido después (primeros 500 chars):', afterCurrent.substring(0, 500));
+                        
+                        // Buscar tabla o contenedor con enlaces de jugadores
+                        const tableRegex = /<table[\s\S]*?<\/table>/i;
+                        const tableMatch = afterCurrent.match(tableRegex);
+                        
+                        if (tableMatch) {
+                            console.log('📊 Tabla encontrada después de Current Guild Members');
+                            const tableContent = tableMatch[0];
+                            
+                            const playerLinkRegex = /<a[^>]+href="[^"]*\/player\/[^"]*"[^>]*>([^<]+)<\/a>/gi;
+                            let match;
+                            
+                            while ((match = playerLinkRegex.exec(tableContent)) !== null) {
+                                const playerName = match[1].trim();
+                                if (playerName && playerName.length > 0 && !currentMembers.includes(playerName)) {
+                                    currentMembers.push(playerName);
+                                    console.log(`👤 Miembro encontrado (Método 2): ${playerName}`);
+                                }
+                            }
+                        } else {
+                            // Buscar enlaces de jugadores directamente
+                            const playerLinkRegex = /<a[^>]+href="[^"]*\/player\/[^"]*"[^>]*>([^<]+)<\/a>/gi;
+                            let match;
+                            let count = 0;
+                            
+                            while ((match = playerLinkRegex.exec(afterCurrent)) !== null && count < 100) {
+                                const playerName = match[1].trim();
+                                if (playerName && playerName.length > 0 && !currentMembers.includes(playerName)) {
+                                    currentMembers.push(playerName);
+                                    console.log(`👤 Miembro encontrado (Método 2 directo): ${playerName}`);
+                                    count++;
+                                }
+                            }
+                        }
+                    }
+                } catch (error) {
+                    console.log('⚠️ Error en Método 2:', error);
+                }
+            }
+            
+            // MÉTODO 3: Análisis DOM específico
+            if (currentMembers.length === 0) {
+                console.log('🔍 Método 3: Análisis DOM específico');
+                
+                try {
+                    // Buscar elementos que contengan "Current Guild Members"
+                    const allElements = doc.querySelectorAll('*');
+                    let currentSection = null;
+                    
+                    for (let element of allElements) {
+                        if (element.textContent && element.textContent.includes('Current Guild Members')) {
+                            currentSection = element;
+                            console.log('✅ Elemento con "Current Guild Members" encontrado:', element.tagName);
+                            break;
+                        }
+                    }
+                    
+                    if (currentSection) {
+                        // Buscar en el elemento actual y sus siguientes hermanos
+                        const searchElements = [currentSection];
+                        let sibling = currentSection.nextElementSibling;
+                        let attempts = 0;
+                        
+                        while (sibling && attempts < 10) {
+                            searchElements.push(sibling);
+                            sibling = sibling.nextElementSibling;
+                            attempts++;
+                        }
+                        
+                        for (let element of searchElements) {
+                            const playerLinks = element.querySelectorAll('a[href*="/player/"]');
+                            
+                            if (playerLinks.length > 0) {
+                                console.log(`🎯 Encontrados ${playerLinks.length} enlaces en elemento ${element.tagName}`);
+                                
+                                for (let link of playerLinks) {
+                                    const playerName = link.textContent.trim();
+                                    if (playerName && playerName.length > 0 && !currentMembers.includes(playerName)) {
+                                        currentMembers.push(playerName);
+                                        console.log(`👤 Miembro encontrado (Método 3): ${playerName}`);
+                                    }
+                                }
+                                
+                                // Si encontramos miembros, detener búsqueda
+                                if (currentMembers.length > 0) break;
+                            }
+                        }
+                    }
+                } catch (error) {
+                    console.log('⚠️ Error en Método 3:', error);
+                }
+            }
+            
+            // MÉTODO 4: Buscar patrones específicos de AlbionDB
+            if (currentMembers.length === 0) {
+                console.log('🔍 Método 4: Patrones específicos de AlbionDB');
+                
+                try {
+                    // Buscar patrón: "X Members" después de "Current Guild Members"
+                    const memberCountRegex = /Current Guild Members[\s\S]*?(\d+)\s+Members/i;
+                    const memberCountMatch = htmlText.match(memberCountRegex);
+                    
+                    if (memberCountMatch) {
+                        const expectedCount = parseInt(memberCountMatch[1]);
+                        console.log(`📊 Se esperan ${expectedCount} miembros actuales`);
+                        
+                        // Buscar todos los enlaces de jugador después de este punto
+                        const startIndex = memberCountMatch.index + memberCountMatch[0].length;
+                        const searchArea = htmlText.substring(startIndex, startIndex + 10000);
+                        
                         const playerLinkRegex = /<a[^>]+href="[^"]*\/player\/[^"]*"[^>]*>([^<]+)<\/a>/gi;
                         let match;
                         
-                        while ((match = playerLinkRegex.exec(afterCurrentMembers)) !== null) {
+                        while ((match = playerLinkRegex.exec(searchArea)) !== null) {
                             const playerName = match[1].trim();
                             if (playerName && playerName.length > 0 && !currentMembers.includes(playerName)) {
                                 currentMembers.push(playerName);
-                                console.log(`👤 Miembro encontrado (Método 2): ${playerName}`);
+                                console.log(`👤 Miembro encontrado (Método 4): ${playerName}`);
+                                
+                                // Detener si alcanzamos el número esperado
+                                if (currentMembers.length >= expectedCount) break;
                             }
-                            
-                            // Limitar a primeros 50 para evitar miembros históricos
-                            if (currentMembers.length >= 50) break;
                         }
                     }
-                } catch (regexError) {
-                    console.log('⚠️ Error en análisis regex:', regexError);
+                } catch (error) {
+                    console.log('⚠️ Error en Método 4:', error);
                 }
             }
             
-            // MÉTODO 3: Buscar todas las tablas y analizar contenido
-            if (currentMembers.length === 0) {
-                console.log('🔍 Método 3: Análisis de todas las tablas');
-                
-                const tables = doc.querySelectorAll('table');
-                console.log(`📊 Encontradas ${tables.length} tablas`);
-                
-                for (let table of tables) {
-                    const tableText = table.textContent.toLowerCase();
-                    
-                    // Si la tabla parece contener información de miembros actuales
-                    if (tableText.includes('member') || tableText.includes('player') || tableText.includes('current')) {
-                        const playerLinks = table.querySelectorAll('a[href*="/player/"]');
-                        
-                        if (playerLinks.length > 0 && playerLinks.length <= 300) { // Max guild size
-                            console.log(`🎯 Tabla prometedora con ${playerLinks.length} enlaces de jugadores`);
-                            
-                            for (let link of playerLinks) {
-                                const playerName = link.textContent.trim();
-                                if (playerName && playerName.length > 0 && !currentMembers.includes(playerName)) {
-                                    currentMembers.push(playerName);
-                                    console.log(`👤 Miembro encontrado (Método 3): ${playerName}`);
-                                }
-                            }
-                            
-                            // Si encontramos una cantidad razonable, usar esta tabla
-                            if (currentMembers.length > 0) break;
-                        }
-                    }
-                }
-            }
-            
-            // MÉTODO 4: Buscar todos los enlaces de jugadores únicos (último recurso)
-            if (currentMembers.length === 0) {
-                console.log('🔍 Método 4: Todos los enlaces de jugadores (último recurso)');
-                
-                const allPlayerLinks = doc.querySelectorAll('a[href*="/player/"]');
-                const seenNames = new Set();
-                
-                console.log(`🔗 Encontrados ${allPlayerLinks.length} enlaces de jugadores total`);
-                
-                for (let link of allPlayerLinks) {
-                    const playerName = link.textContent.trim();
-                    if (playerName && playerName.length > 0 && !seenNames.has(playerName)) {
-                        currentMembers.push(playerName);
-                        seenNames.add(playerName);
-                        console.log(`👤 Miembro encontrado (Método 4): ${playerName}`);
-                        
-                        // Limitar a cantidad razonable para gremio
-                        if (currentMembers.length >= 300) break;
-                    }
-                }
-            }
-            
+            console.log(`🎯 Total miembros extraídos: ${currentMembers.length}`);
             return currentMembers;
         }
 
@@ -687,55 +736,122 @@
                 
                 console.log('📄 Status:', data.status);
                 console.log('📄 Tamaño del contenido:', data.contents.length, 'caracteres');
-                console.log('📄 Primeros 1000 caracteres:');
-                console.log(data.contents.substring(0, 1000));
                 
-                // Buscar texto específico
-                const searchTerms = ['Current Guild Members', 'member', 'player', 'guild', '/player/', 'Members'];
-                const results = [];
-                
-                for (let term of searchTerms) {
-                    const index = data.contents.toLowerCase().indexOf(term.toLowerCase());
-                    if (index !== -1) {
-                        console.log(`✅ Encontrado "${term}" en posición ${index}`);
-                        const context = data.contents.substring(Math.max(0, index-150), index+300);
-                        console.log('Contexto:', context);
-                        results.push(`${term}: posición ${index}`);
-                    } else {
-                        console.log(`❌ NO encontrado: "${term}"`);
-                        results.push(`${term}: NO encontrado`);
+                // Buscar "Current Guild Members" específicamente
+                const currentIndex = data.contents.indexOf('Current Guild Members');
+                if (currentIndex !== -1) {
+                    console.log('✅ "Current Guild Members" encontrado en posición:', currentIndex);
+                    
+                    // Mostrar contexto alrededor
+                    const contextBefore = data.contents.substring(Math.max(0, currentIndex - 200), currentIndex);
+                    const contextAfter = data.contents.substring(currentIndex, currentIndex + 1000);
+                    
+                    console.log('📖 Contexto ANTES:', contextBefore);
+                    console.log('📖 Contexto DESPUÉS:', contextAfter);
+                    
+                    // Buscar patrón "X Members"
+                    const memberCountRegex = /(\d+)\s+Members/i;
+                    const memberCountMatch = contextAfter.match(memberCountRegex);
+                    
+                    if (memberCountMatch) {
+                        const memberCount = memberCountMatch[1];
+                        console.log(`📊 Número de miembros actuales: ${memberCount}`);
                     }
+                    
+                    // Buscar enlaces de jugadores en el contexto
+                    const playerLinkRegex = /<a[^>]+href="[^"]*\/player\/[^"]*"[^>]*>([^<]+)<\/a>/gi;
+                    const foundPlayers = [];
+                    let match;
+                    
+                    while ((match = playerLinkRegex.exec(contextAfter)) !== null) {
+                        foundPlayers.push(match[1].trim());
+                        if (foundPlayers.length >= 20) break; // Limitar para debug
+                    }
+                    
+                    console.log(`🎯 Jugadores encontrados en contexto: ${foundPlayers.length}`);
+                    console.log('👥 Lista de jugadores:', foundPlayers);
+                    
+                    // Mostrar resultado en la interfaz
+                    const debugInfo = `
+ANÁLISIS DE ALBIONDB:
+━━━━━━━━━━━━━━━━━━━━━━━━
+
+✅ "Current Guild Members" encontrado
+📊 Miembros encontrados: ${foundPlayers.length}
+${memberCountMatch ? `📈 Número oficial: ${memberCountMatch[1]} miembros` : '❌ No se encontró número oficial'}
+
+👥 PRIMEROS JUGADORES:
+${foundPlayers.slice(0, 10).map(name => `• ${name}`).join('\n')}
+
+🔍 Ver consola para más detalles
+                    `;
+                    
+                    showMessage('syncMessage', `🔍 Debug completado. Jugadores encontrados: ${foundPlayers.length}`, 'success');
+                    alert(debugInfo);
+                    
+                    return { 
+                        found: foundPlayers.length > 0, 
+                        players: foundPlayers, 
+                        memberCount: memberCountMatch ? memberCountMatch[1] : null 
+                    };
+                    
+                } else {
+                    console.log('❌ "Current Guild Members" NO encontrado');
+                    showMessage('syncMessage', '❌ No se encontró "Current Guild Members" en la página', 'error');
+                    
+                    // Mostrar las primeras líneas para debug
+                    console.log('📄 Primeras 1000 líneas de la página:');
+                    console.log(data.contents.substring(0, 1000));
+                    
+                    alert('❌ No se encontró "Current Guild Members" en la página.\nVer consola para más detalles.');
+                    return { found: false, players: [], memberCount: null };
                 }
                 
-                // Buscar enlaces de jugadores con regex
-                const playerLinkRegex = /<a[^>]+href="[^"]*\/player\/[^"]*"[^>]*>([^<]+)<\/a>/gi;
-                const playerLinks = [];
-                let match;
-                
-                while ((match = playerLinkRegex.exec(data.contents)) !== null) {
-                    playerLinks.push(match[1].trim());
-                    if (playerLinks.length >= 20) break; // Limitar para debug
-                }
-                
-                console.log(`🔗 Enlaces de jugadores encontrados: ${playerLinks.length}`);
-                console.log('🎯 Primeros jugadores:', playerLinks.slice(0, 10));
-                
-                const debugInfo = `
-DEBUG RESULTADOS:
-- Tamaño página: ${data.contents.length} caracteres
-- Enlaces jugadores: ${playerLinks.length}
-- Búsquedas: ${results.join(', ')}
-- Primeros jugadores: ${playerLinks.slice(0, 5).join(', ')}
-                `;
-                
-                showMessage('syncMessage', `🔍 Debug completado. Ver consola para detalles. Jugadores encontrados: ${playerLinks.length}`, 'success');
-                alert(debugInfo);
-                
-                return data.contents;
             } catch (error) {
                 console.error('❌ Error en debug:', error);
                 showMessage('syncMessage', `❌ Error en debug: ${error.message}`, 'error');
-                return null;
+                return { found: false, players: [], memberCount: null };
+            }
+        }
+
+        async function testSpecificExtraction() {
+            console.log('🧪 TEST: Extracción específica de miembros...');
+            showMessage('syncMessage', '🧪 Probando extracción específica...', 'loading');
+            
+            try {
+                const guildUrl = `https://albiondb.net/guild/${encodeURIComponent(GUILD_NAME)}/`;
+                const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(guildUrl)}`;
+                
+                const response = await fetch(proxyUrl);
+                const htmlText = await response.text();
+                
+                console.log('📄 HTML obtenido, tamaño:', htmlText.length);
+                
+                // Usar nuestra función de extracción
+                const parser = new DOMParser();
+                const doc = parser.parseFromString(htmlText, 'text/html');
+                
+                const extractedMembers = await extractMembersFromHTML(doc, htmlText);
+                
+                if (extractedMembers.length > 0) {
+                    console.log('✅ Extracción exitosa:', extractedMembers);
+                    showMessage('syncMessage', `✅ Extracción exitosa: ${extractedMembers.length} miembros encontrados`, 'success');
+                    
+                    const membersList = extractedMembers.slice(0, 15).join(', ');
+                    alert(`🎯 MIEMBROS EXTRAÍDOS (${extractedMembers.length}):\n\n${membersList}\n\n${extractedMembers.length > 15 ? '...y más' : ''}`);
+                    
+                    return extractedMembers;
+                } else {
+                    console.log('❌ No se extrajeron miembros');
+                    showMessage('syncMessage', '❌ No se pudieron extraer miembros', 'error');
+                    alert('❌ No se pudieron extraer miembros.\nVer consola para detalles.');
+                    return [];
+                }
+                
+            } catch (error) {
+                console.error('❌ Error en test de extracción:', error);
+                showMessage('syncMessage', `❌ Error: ${error.message}`, 'error');
+                return [];
             }
         }
 
