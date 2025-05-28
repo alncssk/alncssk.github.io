@@ -336,6 +336,8 @@
             50% { transform: scale(1.05); }
             100% { transform: scale(1); }
         }
+
+        @media (max-width: 600px) {
             .container {
                 margin: 10px;
                 border-radius: 10px;
@@ -383,7 +385,7 @@
     <div class="container">
         <div class="header">
             <h1>⚔️ Albion Guild - World Boss Tracker</h1>
-            <p>Control de asistencia al World Boss - Solo quien va body tiene derecho a ir</p>
+            <p>Control de asistencia al World Boss - Solo quien va body tiene derecho</p>
         </div>
         
         <div class="content">
@@ -635,6 +637,16 @@
                 });
         }
 
+        // Función para eliminar nombres expirados
+        async function deleteExpiredName(nameId, nameText) {
+            try {
+                await db.collection('names').doc(nameId).delete();
+                console.log(`🗑️ Eliminado automáticamente: "${nameText}"`);
+            } catch (error) {
+                console.error('❌ Error al eliminar nombre expirado:', error);
+            }
+        }
+
         // ============= DISCORD AUTO-DETECTION =============
         async function toggleDiscordMonitor() {
             if (!isAdminLoggedIn) {
@@ -806,118 +818,6 @@
             };
             
             await processBodyguardMessage(testMessage);
-        }
-
-        // Función para eliminar nombres expirados
-        async function deleteExpiredName(nameId, nameText) {
-            try {
-                await db.collection('names').doc(nameId).delete();
-                console.log(`🗑️ Eliminado automáticamente: "${nameText}"`);
-            } catch (error) {
-                console.error('❌ Error al eliminar nombre expirado:', error);
-            }
-        }
-
-        // Función para eliminar nombres expirados
-        async function deleteExpiredName(nameId, nameText) {
-            try {
-                await db.collection('names').doc(nameId).delete();
-                console.log(`🗑️ Eliminado automáticamente: "${nameText}"`);
-            } catch (error) {
-                console.error('❌ Error al eliminar nombre expirado:', error);
-            }
-        }
-
-        // ============= SINCRONIZACIÓN GUILD-LISTA PÚBLICA =============
-        async function syncGuildMembersWithPublicList(currentGuildMembers) {
-            try {
-                console.log('🔄 Iniciando sincronización guild -> lista pública...');
-                
-                // Obtener todos los nombres actuales en la lista pública
-                const publicListSnapshot = await db.collection('names').get();
-                const existingNames = {};
-                const namesToRemove = [];
-                
-                publicListSnapshot.forEach(doc => {
-                    const data = doc.data();
-                    existingNames[data.name.toLowerCase()] = {
-                        id: doc.id,
-                        data: data,
-                        isGuildMember: false // Marcar como false inicialmente
-                    };
-                });
-                
-                // Verificar cada miembro del guild
-                const currentGuildMemberNames = currentGuildMembers.map(m => m.name.toLowerCase());
-                let addedCount = 0;
-                let updatedCount = 0;
-                
-                for (const member of currentGuildMembers) {
-                    const memberNameLower = member.name.toLowerCase();
-                    
-                    if (existingNames[memberNameLower]) {
-                        // El miembro ya existe en la lista pública
-                        existingNames[memberNameLower].isGuildMember = true;
-                        
-                        // Actualizar para marcar como miembro del guild
-                        await db.collection('names').doc(existingNames[memberNameLower].id).update({
-                            guildMember: true,
-                            isFromGuild: true,
-                            guildRank: member.guildRank,
-                            lastGuildSync: firebase.firestore.FieldValue.serverTimestamp()
-                        });
-                        updatedCount++;
-                        
-                    } else {
-                        // Nuevo miembro del guild, agregarlo a la lista pública
-                        await db.collection('names').add({
-                            name: member.name,
-                            timestamp: firebase.firestore.FieldValue.serverTimestamp(),
-                            lastWBDate: firebase.firestore.FieldValue.serverTimestamp(),
-                            addedBy: 'guild-sync',
-                            isFromGuild: true,
-                            guildMember: true,
-                            guildRank: member.guildRank,
-                            autoAdded: true,
-                            lastGuildSync: firebase.firestore.FieldValue.serverTimestamp()
-                        });
-                        addedCount++;
-                        console.log(`➕ Agregado automáticamente del guild: ${member.name}`);
-                    }
-                }
-                
-                // Identificar miembros que ya no están en el guild
-                let removedCount = 0;
-                for (const [name, info] of Object.entries(existingNames)) {
-                    if (info.data.isFromGuild && !currentGuildMemberNames.includes(name)) {
-                        // Esta persona ya no está en el guild, marcarla como ex-miembro
-                        await db.collection('names').doc(info.id).update({
-                            guildMember: false,
-                            formerGuildMember: true,
-                            leftGuildDate: firebase.firestore.FieldValue.serverTimestamp(),
-                            lastGuildSync: firebase.firestore.FieldValue.serverTimestamp()
-                        });
-                        removedCount++;
-                        console.log(`➖ Marcado como ex-miembro: ${info.data.name}`);
-                    }
-                }
-                
-                console.log(`✅ Sincronización completada:`);
-                console.log(`   - Agregados: ${addedCount}`);
-                console.log(`   - Actualizados: ${updatedCount}`);
-                console.log(`   - Ex-miembros: ${removedCount}`);
-                
-                if (addedCount > 0 || removedCount > 0) {
-                    showMessage('guildMessage', 
-                        `Sincronización: +${addedCount} nuevos, -${removedCount} ex-miembros`, 
-                        'success'
-                    );
-                }
-                
-            } catch (error) {
-                console.error('❌ Error en sincronización:', error);
-                showMessage('guildMessage', 'Error en sincronización: ' + error.message, 'error');
-            }
         }
 
         // ============= FUNCIONES DE GUILD API =============
@@ -1098,6 +998,98 @@
             }
         }
 
+        // ============= SINCRONIZACIÓN GUILD-LISTA PÚBLICA =============
+        async function syncGuildMembersWithPublicList(currentGuildMembers) {
+            try {
+                console.log('🔄 Iniciando sincronización guild -> lista pública...');
+                
+                // Obtener todos los nombres actuales en la lista pública
+                const publicListSnapshot = await db.collection('names').get();
+                const existingNames = {};
+                const namesToRemove = [];
+                
+                publicListSnapshot.forEach(doc => {
+                    const data = doc.data();
+                    existingNames[data.name.toLowerCase()] = {
+                        id: doc.id,
+                        data: data,
+                        isGuildMember: false // Marcar como false inicialmente
+                    };
+                });
+                
+                // Verificar cada miembro del guild
+                const currentGuildMemberNames = currentGuildMembers.map(m => m.name.toLowerCase());
+                let addedCount = 0;
+                let updatedCount = 0;
+                
+                for (const member of currentGuildMembers) {
+                    const memberNameLower = member.name.toLowerCase();
+                    
+                    if (existingNames[memberNameLower]) {
+                        // El miembro ya existe en la lista pública
+                        existingNames[memberNameLower].isGuildMember = true;
+                        
+                        // Actualizar para marcar como miembro del guild
+                        await db.collection('names').doc(existingNames[memberNameLower].id).update({
+                            guildMember: true,
+                            isFromGuild: true,
+                            guildRank: member.guildRank,
+                            lastGuildSync: firebase.firestore.FieldValue.serverTimestamp()
+                        });
+                        updatedCount++;
+                        
+                    } else {
+                        // Nuevo miembro del guild, agregarlo a la lista pública
+                        await db.collection('names').add({
+                            name: member.name,
+                            timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+                            lastWBDate: firebase.firestore.FieldValue.serverTimestamp(),
+                            addedBy: 'guild-sync',
+                            isFromGuild: true,
+                            guildMember: true,
+                            guildRank: member.guildRank,
+                            autoAdded: true,
+                            lastGuildSync: firebase.firestore.FieldValue.serverTimestamp()
+                        });
+                        addedCount++;
+                        console.log(`➕ Agregado automáticamente del guild: ${member.name}`);
+                    }
+                }
+                
+                // Identificar miembros que ya no están en el guild
+                let removedCount = 0;
+                for (const [name, info] of Object.entries(existingNames)) {
+                    if (info.data.isFromGuild && !currentGuildMemberNames.includes(name)) {
+                        // Esta persona ya no está en el guild, marcarla como ex-miembro
+                        await db.collection('names').doc(info.id).update({
+                            guildMember: false,
+                            formerGuildMember: true,
+                            leftGuildDate: firebase.firestore.FieldValue.serverTimestamp(),
+                            lastGuildSync: firebase.firestore.FieldValue.serverTimestamp()
+                        });
+                        removedCount++;
+                        console.log(`➖ Marcado como ex-miembro: ${info.data.name}`);
+                    }
+                }
+                
+                console.log(`✅ Sincronización completada:`);
+                console.log(`   - Agregados: ${addedCount}`);
+                console.log(`   - Actualizados: ${updatedCount}`);
+                console.log(`   - Ex-miembros: ${removedCount}`);
+                
+                if (addedCount > 0 || removedCount > 0) {
+                    showMessage('guildMessage', 
+                        `Sincronización: +${addedCount} nuevos, -${removedCount} ex-miembros`, 
+                        'success'
+                    );
+                }
+                
+            } catch (error) {
+                console.error('❌ Error en sincronización:', error);
+                showMessage('guildMessage', 'Error en sincronización: ' + error.message, 'error');
+            }
+        }
+
         function displayGuildMembers() {
             const guildList = document.getElementById('guildMembersList');
             
@@ -1184,7 +1176,6 @@
             const totalMembersEl = document.getElementById('totalMembers');
             const membersInWBEl = document.getElementById('membersInWB');
             const membersWithoutRightEl = document.getElementById('membersWithoutRight');
-            const cacheStatusEl = document.getElementById('cacheStatus');
             
             const totalMembers = guildMembers.length;
             const membersWithRight = names.filter(nameObj => 
@@ -1197,39 +1188,6 @@
             totalMembersEl.textContent = totalMembers || '-';
             membersInWBEl.textContent = membersWithRight || '0';
             membersWithoutRightEl.textContent = membersWithoutRight || '0';
-            
-            // Actualizar estado del cache
-            updateCacheStatus();
-        }
-
-        async function updateCacheStatus() {
-            try {
-                const cacheStatusEl = document.getElementById('cacheStatus');
-                const docRef = db.collection('guild_cache').doc('members');
-                const doc = await docRef.get();
-                
-                if (doc.exists) {
-                    const data = doc.data();
-                    const lastUpdated = data.lastUpdated ? data.lastUpdated.toDate() : new Date(0);
-                    const hoursSinceUpdate = (new Date() - lastUpdated) / (1000 * 60 * 60);
-                    
-                    if (hoursSinceUpdate < 1) {
-                        cacheStatusEl.textContent = 'Recién';
-                        cacheStatusEl.style.color = '#28a745';
-                    } else if (hoursSinceUpdate < 6) {
-                        cacheStatusEl.textContent = `${Math.round(hoursSinceUpdate)}h`;
-                        cacheStatusEl.style.color = '#ffc107';
-                    } else {
-                        cacheStatusEl.textContent = `${Math.round(hoursSinceUpdate)}h`;
-                        cacheStatusEl.style.color = '#dc3545';
-                    }
-                } else {
-                    cacheStatusEl.textContent = 'Sin cache';
-                    cacheStatusEl.style.color = '#6c757d';
-                }
-            } catch (error) {
-                console.error('Error al verificar cache:', error);
-            }
         }
 
         function toggleGuildSection() {
@@ -1452,138 +1410,4 @@
                         } else if (prioHours > 6) {
                             prioBadge = `<span style="background: #ff8c42; color: white; padding: 2px 8px; border-radius: 3px; font-size: 12px; font-weight: bold; margin-left: 5px;">🔥 PRIO ${prioHours}h</span>`;
                         } else {
-                            prioBadge = `<span style="background: #ffa726; color: white; padding: 2px 8px; border-radius: 3px; font-size: 12px; font-weight: bold; margin-left: 5px; animation: blink 2s infinite;">🔥 PRIO ${prioHours}h</span>`;
-                        }
-                    }
-                    
-                    // Contador de 7 días visual
-                    const daysLeft = 7 - nameObj.daysSinceLastWB;
-                    let countdownBadge = '';
-                    let countdownColor = '';
-                    
-                    if (daysLeft > 5) {
-                        countdownColor = '#28a745'; // Verde
-                        countdownBadge = `<span style="background: ${countdownColor}; color: white; padding: 2px 8px; border-radius: 3px; font-size: 12px; font-weight: bold; margin-left: 5px;">📅 ${daysLeft} DÍAS</span>`;
-                    } else if (daysLeft > 2) {
-                        countdownColor = '#ffc107'; // Amarillo
-                        countdownBadge = `<span style="background: ${countdownColor}; color: black; padding: 2px 8px; border-radius: 3px; font-size: 12px; font-weight: bold; margin-left: 5px;">⚠️ ${daysLeft} DÍAS</span>`;
-                    } else {
-                        countdownColor = '#fd7e14'; // Naranja
-                        countdownBadge = `<span style="background: ${countdownColor}; color: white; padding: 2px 8px; border-radius: 3px; font-size: 12px; font-weight: bold; margin-left: 5px;">🔥 ${daysLeft} DÍAS</span>`;
-                    }
-                    
-                    // Estilo especial para PRIO
-                    const nameStyle = nameObj.hasPrio ? 
-                        'font-size: 22px; font-weight: bold; color: #ff6b35;' : 
-                        'font-size: 20px; font-weight: bold;';
-                    
-                    html += `
-                        <div class="name-item" style="border-left: 3px solid ${nameObj.hasPrio ? '#ff6b35' : '#28a745'}; ${nameObj.hasPrio ? 'background: linear-gradient(90deg, #fff3e0, #ffffff);' : ''}">
-                            <div>
-                                <span class="name-text" style="${nameStyle}">${escapeHtml(nameObj.name)}</span>
-                                ${guildBadge}
-                                ${prioBadge}
-                                ${countdownBadge}
-                                <br><small style="color: ${nameObj.hasPrio ? '#ff6b35' : '#28a745'}; font-size: 12px;">
-                                    ${nameObj.hasPrio ? `🔥 PRIORIDAD - Fue body recientemente (${nameObj.prioHoursLeft}h restantes)` : `✅ Último WB hace ${nameObj.daysSinceLastWB} días - Le quedan ${daysLeft} días`}
-                                </small>
-                            </div>
-                            ${isAdminLoggedIn ? `
-                                <div>
-                                    <button class="btn btn-success" onclick="updateMemberWBDate('${nameObj.id}', '${escapeHtml(nameObj.name)}')" style="margin-right: 5px;">✅ Fue Body</button>
-                                    <button class="btn btn-danger" onclick="removeName('${nameObj.id}', '${escapeHtml(nameObj.name)}')">🗑️ Eliminar</button>
-                                </div>
-                            ` : ''}
-                        </div>
-                    `;
-                });
-                
-                html += '</div>';
-            }
-            
-            // Sección de quienes NO TIENEN derecho
-            if (withoutRight.length > 0) {
-                html += `
-                    <div style="background: #f8d7da; padding: 15px; border-radius: 8px; border-left: 4px solid #dc3545;">
-                        <h3 style="color: #721c24; margin-bottom: 15px;">🚫 NO PUEDE IR AL WORLD BOSS (${withoutRight.length})</h3>
-                        <p style="color: #721c24; font-size: 13px; margin-bottom: 15px;">
-                            <strong>WB Caller:</strong> Estas personas NO pueden entrar a la party hasta que vayan BODY
-                        </p>
-                `;
-                
-                withoutRight.forEach(nameObj => {
-                    const guildBadge = nameObj.guildMember ? '<span style="background: #007bff; color: white; padding: 2px 6px; border-radius: 3px; font-size: 11px; margin-left: 8px;">GUILD</span>' : '';
-                    
-                    // Contador en rojo para los que ya perdieron el derecho
-                    const daysOver = nameObj.daysSinceLastWB;
-                    const overdueBadge = `<span style="background: #dc3545; color: white; padding: 2px 8px; border-radius: 3px; font-size: 12px; font-weight: bold; margin-left: 5px; animation: blink 2s infinite;">🚫 VENCIDO +${daysOver}d</span>`;
-                    
-                    html += `
-                        <div class="name-item" style="border-left: 3px solid #dc3545; background: #fff5f5;">
-                            <div>
-                                <span class="name-text" style="color: #721c24; font-size: 20px; font-weight: bold; text-decoration: line-through;">${escapeHtml(nameObj.name)}</span>
-                                ${guildBadge}
-                                ${overdueBadge}
-                                <br><small style="color: #dc3545; font-size: 12px; font-weight: bold;">🚫 Sin derecho - Último WB hace ${nameObj.daysSinceLastWB} días (Límite: 7 días)</small>
-                            </div>
-                            <div>
-                                ${isAdminLoggedIn ? `<button class="btn btn-success" onclick="resetMemberWBDate('${nameObj.id}', '${escapeHtml(nameObj.name)}')" style="margin-right: 5px;">🔄 Restaurar Derecho</button>` : ''}
-                                ${isAdminLoggedIn ? `<button class="btn btn-danger" onclick="removeName('${nameObj.id}', '${escapeHtml(nameObj.name)}')">🗑️ Eliminar</button>` : ''}
-                            </div>
-                        </div>
-                    `;
-                });
-                
-                html += '</div>';
-            }
-            
-            nameListDiv.innerHTML = html;
-        }
-
-        function showMessage(elementId, message, type) {
-            const element = document.getElementById(elementId);
-            element.innerHTML = `<div class="status-message ${type}">${message}</div>`;
-            
-            if (type !== 'loading') {
-                setTimeout(() => {
-                    element.innerHTML = '';
-                }, 3000);
-            }
-        }
-
-        function escapeHtml(text) {
-            const div = document.createElement('div');
-            div.textContent = text;
-            return div.innerHTML;
-        }
-
-        // ============= EVENT LISTENERS =============
-        document.addEventListener('DOMContentLoaded', function() {
-            document.getElementById('adminPassword').addEventListener('keypress', function(e) {
-                if (e.key === 'Enter') {
-                    login();
-                }
-            });
-
-            document.getElementById('nameInput').addEventListener('keypress', function(e) {
-                if (e.key === 'Enter') {
-                    addName();
-                }
-            });
-        });
-
-        // Limpiar recursos al cerrar la página
-        window.addEventListener('beforeunload', () => {
-            if (unsubscribe) {
-                unsubscribe();
-            }
-            if (discordMonitorInterval) {
-                clearInterval(discordMonitorInterval);
-            }
-        });
-
-        // Log inicial para debugging
-        console.log('🚀 Script cargado, esperando inicialización...');
-    </script>
-</body>
-</html>
+                            prioBadge = `<span style="background: #ffa726; color: white;
