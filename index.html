@@ -317,7 +317,21 @@
             color: #333;
         }
 
-        @media (max-width: 600px) {
+        @keyframes blink {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+
+        .countdown-urgent {
+            animation: pulse 1.5s infinite;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
             .container {
                 margin: 10px;
                 border-radius: 10px;
@@ -411,8 +425,12 @@
                         <div class="stat-value" id="totalMembers">-</div>
                     </div>
                     <div class="stat-item">
-                        <div class="stat-label">Últimos en WB</div>
+                        <div class="stat-label">Con Derecho</div>
                         <div class="stat-value" id="membersInWB">-</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-label">Sin Derecho</div>
+                        <div class="stat-value" id="membersWithoutRight" style="color: #dc3545;">-</div>
                     </div>
                     <div class="stat-item">
                         <div class="stat-label">Cache Actualizado</div>
@@ -432,10 +450,10 @@
 
             <!-- Sección Pública -->
             <div class="public-section">
-                <h2>⚔️ Estado de Miembros para World Boss</h2>
+                <h2>⚔️ Control de Acceso al World Boss</h2>
                 <p style="font-size: 14px; color: #666; margin-bottom: 15px;">
-                    <strong>📋 Regla del Guild:</strong> Solo quien va <strong>BODY</strong> al WB tiene derecho. 
-                    Si no vas body por <strong>1 semana</strong>, pierdes el derecho.
+                    <strong>📋 Para WB Caller:</strong> Solo las personas en la sección VERDE pueden entrar a la party. 
+                    <br><strong>🚫 Regla:</strong> 7 días máximo desde último BODY - después pierden el derecho.
                 </p>
                 <div id="nameList" class="name-list">
                     <div class="empty-state">
@@ -884,17 +902,29 @@
                 
                 let statusIcon = '❌';
                 let statusClass = 'style="color: #dc3545;"';
-                let statusText = 'Sin derecho (>1 sem)';
+                let statusText = 'Sin registro';
+                let countdownBadge = '';
                 
                 if (memberInList) {
                     if (memberInList.hasRightToWB) {
+                        const daysLeft = 7 - memberInList.daysSinceLastWB;
                         statusIcon = '✅';
                         statusClass = 'style="color: #28a745;"';
-                        statusText = `Tiene derecho (${memberInList.daysSinceLastWB}d)`;
+                        statusText = `Puede ir (${daysLeft}d restantes)`;
+                        
+                        // Contador visual
+                        if (daysLeft > 5) {
+                            countdownBadge = `<span style="background: #28a745; color: white; padding: 1px 4px; border-radius: 2px; font-size: 10px; margin-left: 5px;">${daysLeft}d</span>`;
+                        } else if (daysLeft > 2) {
+                            countdownBadge = `<span style="background: #ffc107; color: black; padding: 1px 4px; border-radius: 2px; font-size: 10px; margin-left: 5px;">${daysLeft}d</span>`;
+                        } else {
+                            countdownBadge = `<span style="background: #fd7e14; color: white; padding: 1px 4px; border-radius: 2px; font-size: 10px; margin-left: 5px;">${daysLeft}d</span>`;
+                        }
                     } else {
-                        statusIcon = '⚠️';
-                        statusClass = 'style="color: #ffc107;"';
-                        statusText = `Sin derecho (${memberInList.daysSinceLastWB}d)`;
+                        statusIcon = '🚫';
+                        statusClass = 'style="color: #dc3545;"';
+                        statusText = `VENCIDO (+${memberInList.daysSinceLastWB}d)`;
+                        countdownBadge = `<span style="background: #dc3545; color: white; padding: 1px 4px; border-radius: 2px; font-size: 10px; margin-left: 5px;">VENCIDO</span>`;
                     }
                 }
                 
@@ -902,6 +932,7 @@
                     <div class="guild-member-item">
                         <div>
                             <span ${statusClass}>${statusIcon} ${escapeHtml(member.name)}</span>
+                            ${countdownBadge}
                             <br><small style="color: #666; font-size: 11px;">${statusText}</small>
                         </div>
                         ${isAdminLoggedIn && memberInList && !memberInList.hasRightToWB ? 
@@ -921,15 +952,20 @@
         function updateGuildStats() {
             const totalMembersEl = document.getElementById('totalMembers');
             const membersInWBEl = document.getElementById('membersInWB');
+            const membersWithoutRightEl = document.getElementById('membersWithoutRight');
             const cacheStatusEl = document.getElementById('cacheStatus');
             
             const totalMembers = guildMembers.length;
             const membersWithRight = names.filter(nameObj => 
                 nameObj.guildMember && nameObj.hasRightToWB
             ).length;
+            const membersWithoutRight = names.filter(nameObj => 
+                nameObj.guildMember && !nameObj.hasRightToWB
+            ).length;
             
             totalMembersEl.textContent = totalMembers || '-';
             membersInWBEl.textContent = membersWithRight || '0';
+            membersWithoutRightEl.textContent = membersWithoutRight || '0';
             
             // Actualizar estado del cache
             updateCacheStatus();
@@ -1152,22 +1188,43 @@
             if (withRight.length > 0) {
                 html += `
                     <div style="background: #d4edda; padding: 15px; border-radius: 8px; margin-bottom: 20px; border-left: 4px solid #28a745;">
-                        <h3 style="color: #155724; margin-bottom: 15px;">✅ CON DERECHO AL WORLD BOSS (${withRight.length})</h3>
+                        <h3 style="color: #155724; margin-bottom: 15px;">✅ PUEDE IR AL WORLD BOSS (${withRight.length})</h3>
+                        <p style="color: #155724; font-size: 13px; margin-bottom: 15px;"><strong>WB Caller:</strong> Estas personas SÍ pueden entrar a la party</p>
                 `;
                 
                 withRight.forEach(nameObj => {
                     const guildBadge = nameObj.guildMember ? '<span style="background: #007bff; color: white; padding: 2px 6px; border-radius: 3px; font-size: 11px; margin-left: 8px;">GUILD</span>' : '';
-                    const daysBadge = `<span style="background: #28a745; color: white; padding: 2px 6px; border-radius: 3px; font-size: 11px; margin-left: 5px;">${nameObj.daysSinceLastWB}d</span>`;
+                    
+                    // Contador de 7 días visual
+                    const daysLeft = 7 - nameObj.daysSinceLastWB;
+                    let countdownBadge = '';
+                    let countdownColor = '';
+                    
+                    if (daysLeft > 5) {
+                        countdownColor = '#28a745'; // Verde
+                        countdownBadge = `<span style="background: ${countdownColor}; color: white; padding: 2px 8px; border-radius: 3px; font-size: 12px; font-weight: bold; margin-left: 5px;">📅 ${daysLeft} DÍAS</span>`;
+                    } else if (daysLeft > 2) {
+                        countdownColor = '#ffc107'; // Amarillo
+                        countdownBadge = `<span style="background: ${countdownColor}; color: black; padding: 2px 8px; border-radius: 3px; font-size: 12px; font-weight: bold; margin-left: 5px;">⚠️ ${daysLeft} DÍAS</span>`;
+                    } else {
+                        countdownColor = '#fd7e14'; // Naranja
+                        countdownBadge = `<span style="background: ${countdownColor}; color: white; padding: 2px 8px; border-radius: 3px; font-size: 12px; font-weight: bold; margin-left: 5px;">🔥 ${daysLeft} DÍAS</span>`;
+                    }
                     
                     html += `
                         <div class="name-item" style="border-left: 3px solid #28a745;">
                             <div>
-                                <span class="name-text">${escapeHtml(nameObj.name)}</span>
+                                <span class="name-text" style="font-size: 20px; font-weight: bold;">${escapeHtml(nameObj.name)}</span>
                                 ${guildBadge}
-                                ${daysBadge}
-                                <br><small style="color: #28a745; font-size: 12px;">Último WB hace ${nameObj.daysSinceLastWB} días</small>
+                                ${countdownBadge}
+                                <br><small style="color: #28a745; font-size: 12px;">✅ Último WB hace ${nameObj.daysSinceLastWB} días - Le quedan ${daysLeft} días</small>
                             </div>
-                            ${isAdminLoggedIn ? `<button class="btn btn-danger" onclick="removeName('${nameObj.id}', '${escapeHtml(nameObj.name)}')">🗑️ Eliminar</button>` : ''}
+                            ${isAdminLoggedIn ? `
+                                <div>
+                                    <button class="btn btn-success" onclick="updateMemberWBDate('${nameObj.id}', '${escapeHtml(nameObj.name)}')" style="margin-right: 5px;">✅ Fue Body</button>
+                                    <button class="btn btn-danger" onclick="removeName('${nameObj.id}', '${escapeHtml(nameObj.name)}')">🗑️ Eliminar</button>
+                                </div>
+                            ` : ''}
                         </div>
                     `;
                 });
@@ -1179,26 +1236,29 @@
             if (withoutRight.length > 0) {
                 html += `
                     <div style="background: #f8d7da; padding: 15px; border-radius: 8px; border-left: 4px solid #dc3545;">
-                        <h3 style="color: #721c24; margin-bottom: 15px;">❌ SIN DERECHO AL WORLD BOSS (${withoutRight.length})</h3>
-                        <p style="color: #721c24; font-size: 14px; margin-bottom: 15px;">
-                            <strong>Regla:</strong> Más de 1 semana sin ir BODY = Sin derecho al WB
+                        <h3 style="color: #721c24; margin-bottom: 15px;">🚫 NO PUEDE IR AL WORLD BOSS (${withoutRight.length})</h3>
+                        <p style="color: #721c24; font-size: 13px; margin-bottom: 15px;">
+                            <strong>WB Caller:</strong> Estas personas NO pueden entrar a la party hasta que vayan BODY
                         </p>
                 `;
                 
                 withoutRight.forEach(nameObj => {
                     const guildBadge = nameObj.guildMember ? '<span style="background: #007bff; color: white; padding: 2px 6px; border-radius: 3px; font-size: 11px; margin-left: 8px;">GUILD</span>' : '';
-                    const daysBadge = `<span style="background: #dc3545; color: white; padding: 2px 6px; border-radius: 3px; font-size: 11px; margin-left: 5px;">${nameObj.daysSinceLastWB}d</span>`;
+                    
+                    // Contador en rojo para los que ya perdieron el derecho
+                    const daysOver = nameObj.daysSinceLastWB;
+                    const overdueBadge = `<span style="background: #dc3545; color: white; padding: 2px 8px; border-radius: 3px; font-size: 12px; font-weight: bold; margin-left: 5px; animation: blink 2s infinite;">🚫 VENCIDO +${daysOver}d</span>`;
                     
                     html += `
                         <div class="name-item" style="border-left: 3px solid #dc3545; background: #fff5f5;">
                             <div>
-                                <span class="name-text" style="color: #721c24;">${escapeHtml(nameObj.name)}</span>
+                                <span class="name-text" style="color: #721c24; font-size: 20px; font-weight: bold; text-decoration: line-through;">${escapeHtml(nameObj.name)}</span>
                                 ${guildBadge}
-                                ${daysBadge}
-                                <br><small style="color: #dc3545; font-size: 12px;">Último WB hace ${nameObj.daysSinceLastWB} días (>7 días)</small>
+                                ${overdueBadge}
+                                <br><small style="color: #dc3545; font-size: 12px; font-weight: bold;">🚫 Sin derecho - Último WB hace ${nameObj.daysSinceLastWB} días (Límite: 7 días)</small>
                             </div>
                             <div>
-                                ${isAdminLoggedIn ? `<button class="btn btn-success" onclick="resetMemberWBDate('${nameObj.id}', '${escapeHtml(nameObj.name)}')" style="margin-right: 5px;">🔄 Restaurar</button>` : ''}
+                                ${isAdminLoggedIn ? `<button class="btn btn-success" onclick="resetMemberWBDate('${nameObj.id}', '${escapeHtml(nameObj.name)}')" style="margin-right: 5px;">🔄 Restaurar Derecho</button>` : ''}
                                 ${isAdminLoggedIn ? `<button class="btn btn-danger" onclick="removeName('${nameObj.id}', '${escapeHtml(nameObj.name)}')">🗑️ Eliminar</button>` : ''}
                             </div>
                         </div>
