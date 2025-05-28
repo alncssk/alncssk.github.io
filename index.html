@@ -431,7 +431,7 @@
                 console.error('❌ Error al eliminar nombre expirado:', error);
             }
         }
-        }
+        // Eliminar la llave de cierre extra que estaba aquí
 
         // ============= FUNCIONES DE ADMIN =============
         function login() {
@@ -532,7 +532,19 @@
 
             let html = '';
             names.forEach(nameObj => {
-                const timeInfo = nameObj.hoursLeft ? `<small style="color: #666; font-size: 12px;">(${nameObj.hoursLeft}h restantes)</small>` : '';
+                // Mejorar la visualización del tiempo restante
+                let timeInfo = '';
+                if (nameObj.hoursLeft) {
+                    const hours = nameObj.hoursLeft;
+                    if (hours < 1) {
+                        timeInfo = `<small style="color: #dc3545; font-size: 12px; font-weight: bold;">⏰ (Menos de 1h restante)</small>`;
+                    } else if (hours < 6) {
+                        timeInfo = `<small style="color: #fd7e14; font-size: 12px; font-weight: bold;">⏰ (${hours}h restantes)</small>`;
+                    } else {
+                        timeInfo = `<small style="color: #28a745; font-size: 12px;">⏰ (${hours}h restantes)</small>`;
+                    }
+                }
+                
                 html += `
                     <div class="name-item">
                         <div>
