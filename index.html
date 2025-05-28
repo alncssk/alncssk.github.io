@@ -400,7 +400,8 @@
             <div class="guild-section" id="guildSection">
                 <h2>🏛️ Miembros del Guild</h2>
                 <div class="admin-controls">
-                    <button class="btn btn-info" onclick="loadGuildMembers()">🔄 Actualizar Lista</button>
+                    <button class="btn btn-info" onclick="loadGuildMembers()">🔄 Actualizar desde Cache</button>
+                    <button class="btn btn-info" onclick="loadGuildMembers(true)">🌐 Forzar desde API</button>
                     <button class="btn btn-secondary" onclick="toggleGuildSection()">Ocultar</button>
                 </div>
                 
@@ -414,14 +415,14 @@
                         <div class="stat-value" id="membersInWB">-</div>
                     </div>
                     <div class="stat-item">
-                        <div class="stat-label">Sin Ir (1 sem)</div>
-                        <div class="stat-value" id="membersNotInWB">-</div>
+                        <div class="stat-label">Cache Actualizado</div>
+                        <div class="stat-value" id="cacheStatus">-</div>
                     </div>
                 </div>
 
                 <div id="guildMessage"></div>
                 <div id="guildMembersList" class="guild-members-grid">
-                    <div class="empty-state">Haz clic en "Actualizar Lista" para cargar los miembros del guild</div>
+                    <div class="empty-state">Haz clic en "Actualizar desde Cache" para cargar rápido, o "Forzar desde API" para datos frescos</div>
                 </div>
             </div>
 
@@ -569,36 +570,134 @@
         }
 
         // ============= FUNCIONES DE GUILD API =============
-        async function loadGuildMembers() {
+        async function loadGuildMembers(forceRefresh = false) {
             showMessage('guildMessage', 'Cargando miembros del guild...', 'loading');
             
             try {
-                console.log('🔄 Obteniendo miembros del guild desde API...');
+                // Primero intentar cargar desde Firebase si no forzamos refresh
+                if (!forceRefresh) {
+                    console.log('🔍 Intentando cargar desde Firebase cache...');
+                    const cachedMembers = await loadGuildMembersFromFirebase();
+                    if (cachedMembers && cachedMembers.length > 0) {
+                        guildMembers = cachedMembers;
+                        displayGuildMembers();
+                        updateGuildStats();
+                        showMessage('guildMessage', `${cachedMembers.length} miembros cargados desde cache`, 'success');
+                        return;
+                    }
+                }
                 
-                const response = await fetch(ALBION_API_URL);
+                console.log('🔄 Obteniendo miembros del guild desde API de Albion...');
+                showMessage('guildMessage', 'Conectando con API de Albion Online... (puede tardar hasta 30 segundos)', 'loading');
+                
+                // Crear un AbortController para timeout
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 segundos
+                
+                const response = await fetch(ALBION_API_URL, {
+                    signal: controller.signal,
+                    headers: {
+                        'Accept': 'application/json',
+                        'User-Agent': 'AlbionGuildTracker/1.0'
+                    }
+                });
+                
+                clearTimeout(timeoutId);
                 
                 if (!response.ok) {
-                    throw new Error(`Error HTTP: ${response.status}`);
+                    throw new Error(`Error HTTP: ${response.status} - ${response.statusText}`);
                 }
                 
                 const members = await response.json();
-                console.log('✅ Miembros obtenidos:', members.length);
+                console.log('✅ Miembros obtenidos desde API:', members.length);
                 
                 guildMembers = members.map(member => ({
                     id: member.Id,
                     name: member.Name,
                     guildRank: member.GuildRank || 'Miembro',
                     killFame: member.KillFame || 0,
-                    deathFame: member.DeathFame || 0
+                    deathFame: member.DeathFame || 0,
+                    joinedDate: member.JoinedDate || null
                 }));
+                
+                // Guardar en Firebase para cache
+                await saveGuildMembersToFirebase(guildMembers);
                 
                 displayGuildMembers();
                 updateGuildStats();
-                showMessage('guildMessage', `${members.length} miembros cargados correctamente`, 'success');
+                showMessage('guildMessage', `${members.length} miembros cargados y guardados en cache`, 'success');
                 
             } catch (error) {
                 console.error('❌ Error al obtener miembros del guild:', error);
-                showMessage('guildMessage', 'Error al cargar miembros: ' + error.message, 'error');
+                
+                if (error.name === 'AbortError') {
+                    showMessage('guildMessage', 'Timeout: La API de Albion tardó más de 30 segundos. Intenta de nuevo.', 'error');
+                } else if (error.message.includes('Failed to fetch')) {
+                    showMessage('guildMessage', 'Error de conexión con la API de Albion. Verifica tu conexión a internet.', 'error');
+                } else {
+                    showMessage('guildMessage', 'Error al cargar miembros: ' + error.message, 'error');
+                }
+                
+                // Intentar cargar desde cache si hay error
+                console.log('🔄 Intentando cargar desde cache después del error...');
+                const cachedMembers = await loadGuildMembersFromFirebase();
+                if (cachedMembers && cachedMembers.length > 0) {
+                    guildMembers = cachedMembers;
+                    displayGuildMembers();
+                    updateGuildStats();
+                    showMessage('guildMessage', `Error de API - Usando cache: ${cachedMembers.length} miembros`, 'error');
+                }
+            }
+        }
+
+        // Guardar miembros en Firebase
+        async function saveGuildMembersToFirebase(members) {
+            try {
+                console.log('💾 Guardando miembros en Firebase...');
+                
+                const docRef = db.collection('guild_cache').doc('members');
+                await docRef.set({
+                    members: members,
+                    lastUpdated: firebase.firestore.FieldValue.serverTimestamp(),
+                    totalMembers: members.length,
+                    guildId: GUILD_ID
+                });
+                
+                console.log('✅ Miembros guardados en Firebase cache');
+            } catch (error) {
+                console.error('❌ Error al guardar en Firebase:', error);
+            }
+        }
+
+        // Cargar miembros desde Firebase
+        async function loadGuildMembersFromFirebase() {
+            try {
+                console.log('📖 Cargando miembros desde Firebase...');
+                
+                const docRef = db.collection('guild_cache').doc('members');
+                const doc = await docRef.get();
+                
+                if (doc.exists) {
+                    const data = doc.data();
+                    const lastUpdated = data.lastUpdated ? data.lastUpdated.toDate() : new Date(0);
+                    const hoursSinceUpdate = (new Date() - lastUpdated) / (1000 * 60 * 60);
+                    
+                    console.log(`📊 Cache encontrado: ${data.totalMembers} miembros, actualizado hace ${Math.round(hoursSinceUpdate)} horas`);
+                    
+                    // Si el cache tiene menos de 24 horas, usarlo
+                    if (hoursSinceUpdate < 24) {
+                        return data.members || [];
+                    } else {
+                        console.log('⚠️ Cache muy antiguo, necesita actualización');
+                        return null;
+                    }
+                } else {
+                    console.log('📝 No hay cache disponible');
+                    return null;
+                }
+            } catch (error) {
+                console.error('❌ Error al cargar desde Firebase:', error);
+                return null;
             }
         }
 
@@ -634,17 +733,48 @@
         function updateGuildStats() {
             const totalMembersEl = document.getElementById('totalMembers');
             const membersInWBEl = document.getElementById('membersInWB');
-            const membersNotInWBEl = document.getElementById('membersNotInWB');
+            const cacheStatusEl = document.getElementById('cacheStatus');
             
             const totalMembers = guildMembers.length;
             const membersInWB = guildMembers.filter(member => 
                 names.some(nameObj => nameObj.name.toLowerCase() === member.name.toLowerCase())
             ).length;
-            const membersNotInWB = totalMembers - membersInWB;
             
             totalMembersEl.textContent = totalMembers || '-';
             membersInWBEl.textContent = membersInWB || '0';
-            membersNotInWBEl.textContent = membersNotInWB || '-';
+            
+            // Actualizar estado del cache
+            updateCacheStatus();
+        }
+
+        async function updateCacheStatus() {
+            try {
+                const cacheStatusEl = document.getElementById('cacheStatus');
+                const docRef = db.collection('guild_cache').doc('members');
+                const doc = await docRef.get();
+                
+                if (doc.exists) {
+                    const data = doc.data();
+                    const lastUpdated = data.lastUpdated ? data.lastUpdated.toDate() : new Date(0);
+                    const hoursSinceUpdate = (new Date() - lastUpdated) / (1000 * 60 * 60);
+                    
+                    if (hoursSinceUpdate < 1) {
+                        cacheStatusEl.textContent = 'Recién';
+                        cacheStatusEl.style.color = '#28a745';
+                    } else if (hoursSinceUpdate < 6) {
+                        cacheStatusEl.textContent = `${Math.round(hoursSinceUpdate)}h`;
+                        cacheStatusEl.style.color = '#ffc107';
+                    } else {
+                        cacheStatusEl.textContent = `${Math.round(hoursSinceUpdate)}h`;
+                        cacheStatusEl.style.color = '#dc3545';
+                    }
+                } else {
+                    cacheStatusEl.textContent = 'Sin cache';
+                    cacheStatusEl.style.color = '#6c757d';
+                }
+            } catch (error) {
+                console.error('Error al verificar cache:', error);
+            }
         }
 
         function toggleGuildSection() {
