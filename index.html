@@ -3,9 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Lista de Nombres</title>
+    <title>Sistema WB - Morgana Enjoyers</title>
     
-    <!-- Firebase SDK v9 Compat (más estable) -->
+    <!-- Firebase SDK v9 Compat -->
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
@@ -25,7 +25,7 @@
         }
 
         .container {
-            max-width: 800px;
+            max-width: 1200px;
             margin: 0 auto;
             background: white;
             border-radius: 15px;
@@ -50,19 +50,46 @@
             padding: 30px;
         }
 
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+            border-left: 4px solid #007bff;
+        }
+
+        .stat-number {
+            font-size: 2em;
+            font-weight: bold;
+            color: #333;
+        }
+
+        .stat-label {
+            color: #666;
+            margin-top: 5px;
+        }
+
+        .sync-section {
+            background: #e8f5e8;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 30px;
+            border-left: 4px solid #28a745;
+        }
+
         .login-section {
             background: #f8f9fa;
             padding: 20px;
             border-radius: 10px;
             margin-bottom: 30px;
             border-left: 4px solid #007bff;
-        }
-
-        .public-section {
-            background: #e8f5e8;
-            padding: 20px;
-            border-radius: 10px;
-            border-left: 4px solid #28a745;
         }
 
         .admin-section {
@@ -72,6 +99,13 @@
             margin-bottom: 30px;
             border-left: 4px solid #ffc107;
             display: none;
+        }
+
+        .members-section {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+            border-left: 4px solid #6c757d;
         }
 
         .form-group {
@@ -110,72 +144,79 @@
             transition: all 0.3s ease;
             text-transform: uppercase;
             letter-spacing: 1px;
+            margin-right: 10px;
+            margin-bottom: 10px;
         }
 
-        .btn-primary {
-            background: linear-gradient(135deg, #007bff, #0056b3);
-            color: white;
-        }
-
-        .btn-success {
-            background: linear-gradient(135deg, #28a745, #1e7e34);
-            color: white;
-        }
-
-        .btn-danger {
-            background: linear-gradient(135deg, #dc3545, #bd2130);
-            color: white;
-            font-size: 14px;
-            padding: 8px 16px;
-            margin-left: 10px;
-        }
-
-        .btn-warning {
-            background: linear-gradient(135deg, #ffc107, #e0a800);
-            color: #212529;
-        }
+        .btn-primary { background: linear-gradient(135deg, #007bff, #0056b3); color: white; }
+        .btn-success { background: linear-gradient(135deg, #28a745, #1e7e34); color: white; }
+        .btn-danger { background: linear-gradient(135deg, #dc3545, #bd2130); color: white; }
+        .btn-warning { background: linear-gradient(135deg, #ffc107, #e0a800); color: #212529; }
+        .btn-info { background: linear-gradient(135deg, #17a2b8, #117a8b); color: white; }
 
         .btn:hover {
             transform: translateY(-2px);
             box-shadow: 0 5px 15px rgba(0,0,0,0.2);
         }
 
-        .btn:active {
-            transform: translateY(0);
-        }
-
-        .name-list {
+        .member-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 15px;
             margin-top: 20px;
         }
 
-        .name-item {
+        .member-item {
             background: white;
             padding: 15px;
-            margin-bottom: 10px;
             border-radius: 8px;
-            border: 1px solid #ddd;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
+            border: 2px solid #ddd;
             transition: all 0.3s ease;
+            position: relative;
         }
 
-        .name-item:hover {
+        .member-item:hover {
             box-shadow: 0 3px 10px rgba(0,0,0,0.1);
             transform: translateY(-1px);
         }
 
-        .name-text {
-            font-size: 18px;
-            font-weight: 500;
-            color: #333;
+        .member-item.warning {
+            border-color: #ffc107;
+            background: #fff9e6;
         }
 
-        .empty-state {
-            text-align: center;
-            padding: 40px;
-            color: #666;
-            font-style: italic;
+        .member-item.danger {
+            border-color: #dc3545;
+            background: #ffe6e6;
+        }
+
+        .member-item.success {
+            border-color: #28a745;
+            background: #e8f5e8;
+        }
+
+        .member-name {
+            font-size: 18px;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 5px;
+        }
+
+        .member-status {
+            font-size: 14px;
+            margin-bottom: 10px;
+        }
+
+        .member-controls {
+            display: flex;
+            gap: 5px;
+            justify-content: flex-end;
+        }
+
+        .member-controls .btn {
+            padding: 6px 12px;
+            font-size: 12px;
+            margin: 0;
         }
 
         .status-message {
@@ -186,29 +227,10 @@
             font-weight: bold;
         }
 
-        .success {
-            background: #d4edda;
-            color: #155724;
-            border: 1px solid #c3e6cb;
-        }
-
-        .error {
-            background: #f8d7da;
-            color: #721c24;
-            border: 1px solid #f5c6cb;
-        }
-
-        .loading {
-            background: #cce7ff;
-            color: #004085;
-            border: 1px solid #b3d9ff;
-        }
-
-        .admin-controls {
-            display: flex;
-            gap: 10px;
-            margin-bottom: 20px;
-        }
+        .success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .error { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        .loading { background: #cce7ff; color: #004085; border: 1px solid #b3d9ff; }
+        .warning { background: #fff3cd; color: #856404; border: 1px solid #ffeaa7; }
 
         .firebase-status {
             position: fixed;
@@ -219,17 +241,42 @@
             color: white;
             font-size: 12px;
             font-weight: bold;
+            z-index: 1000;
         }
 
-        .firebase-connected {
-            background: #28a745;
+        .firebase-connected { background: #28a745; }
+        .firebase-disconnected { background: #dc3545; }
+
+        .last-sync {
+            font-size: 12px;
+            color: #666;
+            margin-top: 10px;
         }
 
-        .firebase-disconnected {
-            background: #dc3545;
+        .member-badge {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 10px;
+            font-weight: bold;
+            color: white;
         }
 
-        @media (max-width: 600px) {
+        .badge-ok { background: #28a745; }
+        .badge-warning { background: #ffc107; color: #212529; }
+        .badge-danger { background: #dc3545; }
+
+        @media (max-width: 768px) {
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .member-grid {
+                grid-template-columns: 1fr;
+            }
+            
             .container {
                 margin: 10px;
                 border-radius: 10px;
@@ -246,16 +293,6 @@
             .content {
                 padding: 20px;
             }
-            
-            .admin-controls {
-                flex-direction: column;
-            }
-            
-            .name-item {
-                flex-direction: column;
-                align-items: flex-start;
-                gap: 10px;
-            }
         }
     </style>
 </head>
@@ -267,16 +304,48 @@
 
     <div class="container">
         <div class="header">
-            <h1>📝 Lista de Nombres</h1>
-            <p>Gestión pública de nombres con base de datos en tiempo real</p>
+            <h1>⚔️ Sistema World Boss</h1>
+            <p>Morgana Enjoyers - Seguimiento automático de miembros</p>
         </div>
         
         <div class="content">
+            <!-- Estadísticas -->
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-number" id="totalMembers">0</div>
+                    <div class="stat-label">Miembros Totales</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="activeMembers">0</div>
+                    <div class="stat-label">Pueden ir WB</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="warningMembers">0</div>
+                    <div class="stat-label">En Advertencia</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="bannedMembers">0</div>
+                    <div class="stat-label">No pueden ir WB</div>
+                </div>
+            </div>
+
+            <!-- Sincronización -->
+            <div class="sync-section">
+                <h2>🔄 Sincronización con AlbionDB</h2>
+                <p>Obtiene automáticamente la lista de miembros actuales del gremio.</p>
+                <button class="btn btn-info" onclick="syncGuildMembers()">🔄 Sincronizar Ahora</button>
+                <button class="btn btn-success" onclick="toggleAutoSync()">
+                    <span id="autoSyncText">🤖 Activar Auto-Sync</span>
+                </button>
+                <div id="syncMessage"></div>
+                <div class="last-sync" id="lastSyncTime">Última sincronización: Nunca</div>
+            </div>
+
             <!-- Sección de Login -->
             <div class="login-section" id="loginSection">
-                <h2>🔐 Acceso Administrativo</h2>
+                <h2>🔐 Acceso WB Caller</h2>
                 <div class="form-group">
-                    <label for="adminPassword">Contraseña de Administrador:</label>
+                    <label for="adminPassword">Contraseña de WB Caller:</label>
                     <input type="password" id="adminPassword" placeholder="Ingresa la contraseña">
                 </div>
                 <button class="btn btn-primary" onclick="login()">Iniciar Sesión</button>
@@ -285,25 +354,21 @@
 
             <!-- Sección de Administración -->
             <div class="admin-section" id="adminSection">
-                <h2>⚙️ Panel de Administración</h2>
-                <div class="admin-controls">
+                <h2>⚙️ Panel WB Caller</h2>
+                <div style="display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap;">
                     <button class="btn btn-warning" onclick="logout()">Cerrar Sesión</button>
+                    <button class="btn btn-success" onclick="markAllAttended()">✅ Marcar Todos Asistieron</button>
+                    <button class="btn btn-danger" onclick="resetAllCounters()">🔄 Resetear Todos</button>
                 </div>
-                
-                <div class="form-group">
-                    <label for="nameInput">Agregar Nuevo Nombre:</label>
-                    <input type="text" id="nameInput" placeholder="Escribe un nombre aquí">
-                </div>
-                <button class="btn btn-success" onclick="addName()">➕ Agregar a la Lista</button>
                 <div id="adminMessage"></div>
             </div>
 
-            <!-- Sección Pública -->
-            <div class="public-section">
-                <h2>👥 Lista Pública de Nombres</h2>
-                <div id="nameList" class="name-list">
-                    <div class="empty-state">
-                        🔄 Cargando nombres...
+            <!-- Lista de Miembros -->
+            <div class="members-section">
+                <h2>👥 Miembros del Gremio</h2>
+                <div id="membersList" class="member-grid">
+                    <div style="grid-column: 1 / -1; text-align: center; padding: 40px; color: #666; font-style: italic;">
+                        🔄 Cargando miembros...
                     </div>
                 </div>
             </div>
@@ -328,21 +393,26 @@
         const auth = firebase.auth();
 
         // Variables globales
-        const ADMIN_PASSWORD = "admin123"; // Cambia esta contraseña
+        const ADMIN_PASSWORD = "wbcaller123"; // Cambiar por tu contraseña
+        const GUILD_NAME = "Morgana Enjoyers";
+        const CORS_PROXY = "https://api.allorigins.win/raw?url=";
+        
         let isAdminLoggedIn = false;
-        let names = [];
+        let members = [];
+        let autoSyncInterval = null;
         let unsubscribe = null;
 
         // Inicializar cuando la página carga
         window.addEventListener('load', function() {
-            console.log('Página cargada, inicializando Firebase...');
+            console.log('🚀 Inicializando aplicación...');
             initializeAuth();
             setupRealtimeListener();
+            loadLastSyncTime();
         });
 
         // ============= AUTENTICACIÓN =============
         function initializeAuth() {
-            console.log('Iniciando autenticación...');
+            console.log('🔐 Iniciando autenticación...');
             auth.signInAnonymously()
                 .then(() => {
                     console.log('✅ Autenticado correctamente con Firebase');
@@ -365,73 +435,283 @@
             }
         }
 
+        // ============= SINCRONIZACIÓN CON ALBIONDB =============
+        async function syncGuildMembers() {
+            showMessage('syncMessage', '🔄 Sincronizando con AlbionDB...', 'loading');
+            
+            try {
+                console.log('🌐 Obteniendo miembros del gremio desde AlbionDB...');
+                
+                // Intentar obtener datos del gremio desde AlbionDB
+                const guildUrl = `https://albiondb.net/guild/${encodeURIComponent(GUILD_NAME)}/`;
+                const proxyUrl = CORS_PROXY + encodeURIComponent(guildUrl);
+                
+                const response = await fetch(proxyUrl);
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
+                const htmlText = await response.text();
+                console.log('📄 Página HTML obtenida, analizando...');
+                
+                // Crear un parser DOM temporal
+                const parser = new DOMParser();
+                const doc = parser.parseFromString(htmlText, 'text/html');
+                
+                // Buscar la tabla de miembros actuales
+                const memberRows = doc.querySelectorAll('table tr');
+                const currentMembers = [];
+                
+                console.log(`🔍 Encontradas ${memberRows.length} filas en tablas`);
+                
+                // Buscar específicamente la sección "Current Guild Members"
+                let foundCurrentSection = false;
+                for (let row of memberRows) {
+                    const cells = row.querySelectorAll('td, th');
+                    
+                    // Verificar si esta fila contiene "Current Guild Members"
+                    for (let cell of cells) {
+                        if (cell.textContent.includes('Current Guild Members')) {
+                            foundCurrentSection = true;
+                            console.log('✅ Encontrada sección "Current Guild Members"');
+                            break;
+                        }
+                    }
+                    
+                    // Si ya encontramos la sección y hay un enlace de jugador
+                    if (foundCurrentSection && cells.length > 0) {
+                        const playerLink = row.querySelector('a[href*="/player/"]');
+                        if (playerLink) {
+                            const playerName = playerLink.textContent.trim();
+                            if (playerName && playerName.length > 0) {
+                                currentMembers.push(playerName);
+                                console.log(`👤 Miembro encontrado: ${playerName}`);
+                            }
+                        }
+                    }
+                }
+                
+                // Si no encontramos miembros con el método anterior, intentar otro enfoque
+                if (currentMembers.length === 0) {
+                    console.log('⚠️ Método principal falló, intentando método alternativo...');
+                    
+                    // Buscar todos los enlaces de jugadores
+                    const allPlayerLinks = doc.querySelectorAll('a[href*="/player/"]');
+                    const seenNames = new Set();
+                    
+                    for (let link of allPlayerLinks) {
+                        const playerName = link.textContent.trim();
+                        if (playerName && playerName.length > 0 && !seenNames.has(playerName)) {
+                            currentMembers.push(playerName);
+                            seenNames.add(playerName);
+                            console.log(`👤 Miembro encontrado (método alt): ${playerName}`);
+                        }
+                    }
+                }
+                
+                if (currentMembers.length === 0) {
+                    throw new Error('No se pudieron encontrar miembros en la página de AlbionDB');
+                }
+                
+                console.log(`✅ Total miembros encontrados: ${currentMembers.length}`);
+                
+                // Actualizar base de datos con miembros actuales
+                await updateMembersInDatabase(currentMembers);
+                
+                // Guardar timestamp de última sincronización
+                await saveLastSyncTime();
+                loadLastSyncTime();
+                
+                showMessage('syncMessage', `✅ Sincronización completada: ${currentMembers.length} miembros actualizados`, 'success');
+                
+            } catch (error) {
+                console.error('❌ Error al sincronizar:', error);
+                showMessage('syncMessage', `❌ Error: ${error.message}`, 'error');
+                
+                // Método de respaldo: usar lista manual si falla
+                console.log('🔄 Usando método de respaldo...');
+                await createBackupMembers();
+            }
+        }
+
+        async function createBackupMembers() {
+            // Lista de respaldo de miembros comunes (actualizar según tu gremio real)
+            const backupMembers = [
+                'GuildMaster', 'Officer1', 'Officer2', 'Member1', 'Member2', 
+                'Member3', 'Member4', 'Member5', 'Member6', 'Member7'
+            ];
+            
+            console.log('📋 Usando lista de respaldo de miembros...');
+            await updateMembersInDatabase(backupMembers);
+            showMessage('syncMessage', `⚠️ Usando lista de respaldo: ${backupMembers.length} miembros`, 'warning');
+        }
+
+        async function updateMembersInDatabase(currentMembers) {
+            const batch = db.batch();
+            const now = new Date();
+            
+            // Obtener miembros existentes
+            const existingSnapshot = await db.collection('members').get();
+            const existingMembers = new Map();
+            
+            existingSnapshot.forEach(doc => {
+                existingMembers.set(doc.data().name, {id: doc.id, data: doc.data()});
+            });
+            
+            // Procesar miembros actuales
+            for (let memberName of currentMembers) {
+                const memberRef = db.collection('members').doc();
+                
+                if (existingMembers.has(memberName)) {
+                    // Miembro existente: mantener sus datos actuales
+                    console.log(`🔄 Manteniendo datos de: ${memberName}`);
+                } else {
+                    // Nuevo miembro: crear con contador completo
+                    console.log(`➕ Nuevo miembro: ${memberName}`);
+                    batch.set(memberRef, {
+                        name: memberName,
+                        lastAttendance: null,
+                        daysWithoutAttending: 0,
+                        canGoWB: true,
+                        isActive: true,
+                        joinedDate: now,
+                        lastUpdated: now
+                    });
+                }
+            }
+            
+            // Marcar miembros que ya no están en el gremio como inactivos
+            for (let [memberName, memberInfo] of existingMembers) {
+                if (!currentMembers.includes(memberName) && memberInfo.data.isActive) {
+                    console.log(`❌ Miembro ya no está en el gremio: ${memberName}`);
+                    const memberRef = db.collection('members').doc(memberInfo.id);
+                    batch.update(memberRef, {
+                        isActive: false,
+                        leftDate: now,
+                        lastUpdated: now
+                    });
+                }
+            }
+            
+            await batch.commit();
+            console.log('✅ Base de datos actualizada');
+        }
+
+        async function saveLastSyncTime() {
+            const now = new Date();
+            await db.collection('settings').doc('lastSync').set({
+                timestamp: now,
+                date: now.toISOString()
+            });
+        }
+
+        async function loadLastSyncTime() {
+            try {
+                const doc = await db.collection('settings').doc('lastSync').get();
+                if (doc.exists) {
+                    const data = doc.data();
+                    const date = data.timestamp ? data.timestamp.toDate() : new Date(data.date);
+                    document.getElementById('lastSyncTime').textContent = 
+                        `Última sincronización: ${date.toLocaleString('es-ES')}`;
+                }
+            } catch (error) {
+                console.log('No hay registro de sincronización anterior');
+            }
+        }
+
+        // ============= AUTO-SYNC =============
+        function toggleAutoSync() {
+            if (autoSyncInterval) {
+                clearInterval(autoSyncInterval);
+                autoSyncInterval = null;
+                document.getElementById('autoSyncText').textContent = '🤖 Activar Auto-Sync';
+                showMessage('syncMessage', 'Auto-sincronización desactivada', 'warning');
+            } else {
+                // Sincronizar cada 24 horas (86400000 ms)
+                autoSyncInterval = setInterval(syncGuildMembers, 24 * 60 * 60 * 1000);
+                document.getElementById('autoSyncText').textContent = '🛑 Desactivar Auto-Sync';
+                showMessage('syncMessage', 'Auto-sincronización activada (cada 24h)', 'success');
+            }
+        }
+
         // ============= FIRESTORE EN TIEMPO REAL =============
         function setupRealtimeListener() {
-            console.log('Configurando listener en tiempo real...');
+            console.log('📡 Configurando listener en tiempo real...');
             
-            // Primero intentar crear la colección si no existe
-            db.collection('names').get()
-                .then((snapshot) => {
-                    console.log('✅ Colección accesible, documentos:', snapshot.size);
-                })
-                .catch((error) => {
-                    console.log('⚠️ Error accediendo colección:', error);
-                });
-            
-            unsubscribe = db.collection('names')
-                .orderBy('timestamp', 'asc')
+            unsubscribe = db.collection('members')
+                .where('isActive', '==', true)
                 .onSnapshot((snapshot) => {
-                    console.log('📡 Datos recibidos desde Firestore');
-                    names = [];
-                    const now = new Date();
-                    const expiredNames = []; // Para eliminar nombres vencidos
+                    console.log('📊 Datos de miembros recibidos');
+                    members = [];
                     
                     snapshot.forEach((doc) => {
                         const data = doc.data();
-                        const nameTimestamp = data.timestamp ? data.timestamp.toDate() : new Date();
-                        const hoursSinceAdded = (now - nameTimestamp) / (1000 * 60 * 60);
-                        
-                        if (hoursSinceAdded >= 24) {
-                            // Nombre expirado, marcarlo para eliminación
-                            expiredNames.push({id: doc.id, name: data.name});
-                            console.log(`⏰ Nombre "${data.name}" expirado (${Math.round(hoursSinceAdded)} horas)`);
-                        } else {
-                            // Nombre válido, agregarlo a la lista
-                            names.push({
-                                id: doc.id,
-                                name: data.name,
-                                timestamp: data.timestamp,
-                                hoursLeft: Math.round(24 - hoursSinceAdded)
-                            });
-                        }
+                        members.push({
+                            id: doc.id,
+                            ...data
+                        });
                     });
                     
-                    // Eliminar nombres expirados automáticamente
-                    expiredNames.forEach(expiredName => {
-                        deleteExpiredName(expiredName.id, expiredName.name);
-                    });
-                    
-                    console.log('Total nombres válidos:', names.length);
-                    console.log('Nombres expirados eliminados:', expiredNames.length);
+                    // Actualizar contadores diariamente
+                    updateDailyCounters();
                     updateDisplay();
+                    updateStats();
                 }, (error) => {
                     console.error('❌ Error al escuchar cambios:', error);
-                    console.error('Error code:', error.code);
-                    console.error('Error message:', error.message);
                     showMessage('adminMessage', 'Error de conexión: ' + error.message, 'error');
                 });
         }
 
-        // Función para eliminar nombres expirados
-        async function deleteExpiredName(nameId, nameText) {
-            try {
-                await db.collection('names').doc(nameId).delete();
-                console.log(`🗑️ Eliminado automáticamente: "${nameText}"`);
-            } catch (error) {
-                console.error('❌ Error al eliminar nombre expirado:', error);
+        function updateDailyCounters() {
+            const now = new Date();
+            const batch = db.batch();
+            let hasUpdates = false;
+            
+            members.forEach(member => {
+                let needsUpdate = false;
+                let newDaysWithoutAttending = member.daysWithoutAttending || 0;
+                
+                // Si no tiene registro de última asistencia, empezar a contar
+                if (!member.lastAttendance) {
+                    const daysSinceJoined = member.joinedDate ? 
+                        Math.floor((now - member.joinedDate.toDate()) / (1000 * 60 * 60 * 24)) : 0;
+                    
+                    if (daysSinceJoined > 0) {
+                        newDaysWithoutAttending = Math.min(daysSinceJoined, 7);
+                        needsUpdate = true;
+                    }
+                } else {
+                    // Calcular días desde última asistencia
+                    const daysSinceAttendance = Math.floor((now - member.lastAttendance.toDate()) / (1000 * 60 * 60 * 24));
+                    
+                    if (daysSinceAttendance !== newDaysWithoutAttending) {
+                        newDaysWithoutAttending = Math.min(daysSinceAttendance, 7);
+                        needsUpdate = true;
+                    }
+                }
+                
+                // Determinar si puede ir al WB
+                const canGoWB = newDaysWithoutAttending < 7;
+                
+                if (needsUpdate || member.canGoWB !== canGoWB) {
+                    const memberRef = db.collection('members').doc(member.id);
+                    batch.update(memberRef, {
+                        daysWithoutAttending: newDaysWithoutAttending,
+                        canGoWB: canGoWB,
+                        lastUpdated: now
+                    });
+                    hasUpdates = true;
+                }
+            });
+            
+            if (hasUpdates) {
+                batch.commit().then(() => {
+                    console.log('🔄 Contadores actualizados');
+                }).catch(error => {
+                    console.error('❌ Error actualizando contadores:', error);
+                });
             }
         }
-        // Eliminar la llave de cierre extra que estaba aquí
 
         // ============= FUNCIONES DE ADMIN =============
         function login() {
@@ -442,9 +722,9 @@
                 document.getElementById('loginSection').style.display = 'none';
                 document.getElementById('adminSection').style.display = 'block';
                 updateDisplay();
-                showMessage('loginMessage', 'Acceso concedido correctamente', 'success');
+                showMessage('loginMessage', 'Acceso concedido - WB Caller autenticado', 'success');
                 document.getElementById('adminPassword').value = '';
-                console.log('👑 Admin logueado');
+                console.log('👑 WB Caller logueado');
             } else {
                 showMessage('loginMessage', 'Contraseña incorrecta', 'error');
                 console.log('❌ Contraseña incorrecta');
@@ -456,107 +736,203 @@
             document.getElementById('loginSection').style.display = 'block';
             document.getElementById('adminSection').style.display = 'none';
             document.getElementById('adminPassword').value = '';
-            document.getElementById('nameInput').value = '';
             updateDisplay();
-            console.log('👋 Admin cerró sesión');
+            console.log('👋 WB Caller cerró sesión');
         }
 
-        // ============= CRUD OPERATIONS =============
-        async function addName() {
-            if (!isAdminLoggedIn) {
-                showMessage('adminMessage', 'No tienes permisos de administrador', 'error');
-                return;
-            }
-
-            const nameInput = document.getElementById('nameInput');
-            const name = nameInput.value.trim();
+        // ============= ACCIONES DE MIEMBROS =============
+        async function markAttended(memberId, memberName) {
+            if (!isAdminLoggedIn) return;
             
-            if (name === '') {
-                showMessage('adminMessage', 'Por favor ingresa un nombre', 'error');
-                return;
-            }
-
-            // Verificar si ya existe
-            const existingName = names.find(n => n.name.toLowerCase() === name.toLowerCase());
-            if (existingName) {
-                showMessage('adminMessage', 'Este nombre ya existe en la lista', 'error');
-                return;
-            }
-
             try {
-                console.log('📝 Agregando nombre:', name);
-                showMessage('adminMessage', 'Agregando nombre...', 'loading');
-                
-                await db.collection('names').add({
-                    name: name,
-                    timestamp: firebase.firestore.FieldValue.serverTimestamp(),
-                    addedBy: 'admin'
+                await db.collection('members').doc(memberId).update({
+                    lastAttendance: new Date(),
+                    daysWithoutAttending: 0,
+                    canGoWB: true,
+                    lastUpdated: new Date()
                 });
-
-                nameInput.value = '';
-                showMessage('adminMessage', `"${name}" agregado correctamente`, 'success');
-                console.log('✅ Nombre agregado exitosamente');
+                
+                showMessage('adminMessage', `✅ ${memberName} marcado como asistió al WB`, 'success');
+                console.log(`✅ ${memberName} asistió al WB`);
             } catch (error) {
-                console.error('❌ Error al agregar nombre:', error);
-                showMessage('adminMessage', 'Error al agregar: ' + error.message, 'error');
+                console.error('❌ Error:', error);
+                showMessage('adminMessage', 'Error al actualizar: ' + error.message, 'error');
             }
         }
 
-        async function removeName(nameId, nameText) {
-            if (!isAdminLoggedIn) {
-                return;
-            }
-
+        async function resetMember(memberId, memberName) {
+            if (!isAdminLoggedIn) return;
+            
             try {
-                console.log('🗑️ Eliminando nombre:', nameText);
-                showMessage('adminMessage', 'Eliminando nombre...', 'loading');
+                await db.collection('members').doc(memberId).update({
+                    lastAttendance: new Date(),
+                    daysWithoutAttending: 0,
+                    canGoWB: true,
+                    lastUpdated: new Date()
+                });
                 
-                await db.collection('names').doc(nameId).delete();
-                
-                showMessage('adminMessage', `"${nameText}" eliminado correctamente`, 'success');
-                console.log('✅ Nombre eliminado exitosamente');
+                showMessage('adminMessage', `🔄 ${memberName} reseteado`, 'success');
+                console.log(`🔄 ${memberName} reseteado`);
             } catch (error) {
-                console.error('❌ Error al eliminar nombre:', error);
-                showMessage('adminMessage', 'Error al eliminar: ' + error.message, 'error');
+                console.error('❌ Error:', error);
+                showMessage('adminMessage', 'Error al resetear: ' + error.message, 'error');
+            }
+        }
+
+        async function markAllAttended() {
+            if (!isAdminLoggedIn) return;
+            
+            const confirmed = confirm('¿Marcar TODOS los miembros como que asistieron al WB?');
+            if (!confirmed) return;
+            
+            try {
+                const batch = db.batch();
+                const now = new Date();
+                
+                members.forEach(member => {
+                    const memberRef = db.collection('members').doc(member.id);
+                    batch.update(memberRef, {
+                        lastAttendance: now,
+                        daysWithoutAttending: 0,
+                        canGoWB: true,
+                        lastUpdated: now
+                    });
+                });
+                
+                await batch.commit();
+                showMessage('adminMessage', '✅ Todos los miembros marcados como asistieron', 'success');
+                console.log('✅ Todos marcados como asistieron');
+            } catch (error) {
+                console.error('❌ Error:', error);
+                showMessage('adminMessage', 'Error al actualizar todos: ' + error.message, 'error');
+            }
+        }
+
+        async function resetAllCounters() {
+            if (!isAdminLoggedIn) return;
+            
+            const confirmed = confirm('¿RESETEAR todos los contadores? Esto dará permiso a todos para ir al WB.');
+            if (!confirmed) return;
+            
+            try {
+                const batch = db.batch();
+                const now = new Date();
+                
+                members.forEach(member => {
+                    const memberRef = db.collection('members').doc(member.id);
+                    batch.update(memberRef, {
+                        lastAttendance: now,
+                        daysWithoutAttending: 0,
+                        canGoWB: true,
+                        lastUpdated: now
+                    });
+                });
+                
+                await batch.commit();
+                showMessage('adminMessage', '🔄 Todos los contadores reseteados', 'success');
+                console.log('🔄 Todos los contadores reseteados');
+            } catch (error) {
+                console.error('❌ Error:', error);
+                showMessage('adminMessage', 'Error al resetear todos: ' + error.message, 'error');
             }
         }
 
         // ============= UI FUNCTIONS =============
         function updateDisplay() {
-            const nameListDiv = document.getElementById('nameList');
+            const membersDiv = document.getElementById('membersList');
             
-            if (names.length === 0) {
-                nameListDiv.innerHTML = '<div class="empty-state">No hay nombres en la lista aún</div>';
+            if (members.length === 0) {
+                membersDiv.innerHTML = `
+                    <div style="grid-column: 1 / -1; text-align: center; padding: 40px; color: #666; font-style: italic;">
+                        No hay miembros cargados aún<br>
+                        <button class="btn btn-info" onclick="syncGuildMembers()" style="margin-top: 15px;">
+                            🔄 Sincronizar con AlbionDB
+                        </button>
+                    </div>
+                `;
                 return;
             }
 
+            // Ordenar miembros: primero los que no pueden ir WB, luego por días sin asistir
+            const sortedMembers = [...members].sort((a, b) => {
+                if (a.canGoWB !== b.canGoWB) {
+                    return a.canGoWB ? 1 : -1; // Los que no pueden ir al WB primero
+                }
+                return (b.daysWithoutAttending || 0) - (a.daysWithoutAttending || 0);
+            });
+
             let html = '';
-            names.forEach(nameObj => {
-                // Mejorar la visualización del tiempo restante
-                let timeInfo = '';
-                if (nameObj.hoursLeft) {
-                    const hours = nameObj.hoursLeft;
-                    if (hours < 1) {
-                        timeInfo = `<small style="color: #dc3545; font-size: 12px; font-weight: bold;">⏰ (Menos de 1h restante)</small>`;
-                    } else if (hours < 6) {
-                        timeInfo = `<small style="color: #fd7e14; font-size: 12px; font-weight: bold;">⏰ (${hours}h restantes)</small>`;
-                    } else {
-                        timeInfo = `<small style="color: #28a745; font-size: 12px;">⏰ (${hours}h restantes)</small>`;
-                    }
+            sortedMembers.forEach(member => {
+                const days = member.daysWithoutAttending || 0;
+                const canGo = member.canGoWB !== false;
+                
+                let statusClass = 'success';
+                let statusText = '✅ Puede ir al WB';
+                let badgeClass = 'badge-ok';
+                let badgeText = 'OK';
+                
+                if (days >= 7) {
+                    statusClass = 'danger';
+                    statusText = '❌ NO puede ir al WB';
+                    badgeClass = 'badge-danger';
+                    badgeText = 'BLOQUEADO';
+                } else if (days >= 5) {
+                    statusClass = 'warning';
+                    statusText = '⚠️ Advertencia final';
+                    badgeClass = 'badge-warning';
+                    badgeText = 'ADVERTENCIA';
+                } else if (days >= 3) {
+                    statusClass = 'warning';
+                    statusText = '⚠️ En advertencia';
+                    badgeClass = 'badge-warning';
+                    badgeText = `${days} días`;
+                } else if (days > 0) {
+                    badgeText = `${days} días`;
                 }
                 
+                const lastAttendanceText = member.lastAttendance ? 
+                    member.lastAttendance.toDate().toLocaleDateString('es-ES') : 
+                    'Nunca';
+                
                 html += `
-                    <div class="name-item">
-                        <div>
-                            <span class="name-text">${escapeHtml(nameObj.name)}</span>
-                            ${timeInfo}
+                    <div class="member-item ${statusClass}">
+                        <div class="member-badge ${badgeClass}">${badgeText}</div>
+                        <div class="member-name">${escapeHtml(member.name)}</div>
+                        <div class="member-status">
+                            <strong>${statusText}</strong><br>
+                            Días sin ir: ${days}/7<br>
+                            Última vez: ${lastAttendanceText}
                         </div>
-                        ${isAdminLoggedIn ? `<button class="btn btn-danger" onclick="removeName('${nameObj.id}', '${escapeHtml(nameObj.name)}')">🗑️ Eliminar</button>` : ''}
+                        ${isAdminLoggedIn ? `
+                            <div class="member-controls">
+                                <button class="btn btn-success" onclick="markAttended('${member.id}', '${escapeHtml(member.name)}')">
+                                    ✅ Asistió
+                                </button>
+                                <button class="btn btn-warning" onclick="resetMember('${member.id}', '${escapeHtml(member.name)}')">
+                                    🔄 Reset
+                                </button>
+                            </div>
+                        ` : ''}
                     </div>
                 `;
             });
             
-            nameListDiv.innerHTML = html;
+            membersDiv.innerHTML = html;
+        }
+
+        function updateStats() {
+            const total = members.length;
+            const active = members.filter(m => m.canGoWB !== false && (m.daysWithoutAttending || 0) < 7).length;
+            const warning = members.filter(m => {
+                const days = m.daysWithoutAttending || 0;
+                return days >= 3 && days < 7;
+            }).length;
+            const banned = members.filter(m => (m.daysWithoutAttending || 0) >= 7).length;
+            
+            document.getElementById('totalMembers').textContent = total;
+            document.getElementById('activeMembers').textContent = active;
+            document.getElementById('warningMembers').textContent = warning;
+            document.getElementById('bannedMembers').textContent = banned;
         }
 
         function showMessage(elementId, message, type) {
@@ -566,7 +942,7 @@
             if (type !== 'loading') {
                 setTimeout(() => {
                     element.innerHTML = '';
-                }, 3000);
+                }, 5000);
             }
         }
 
@@ -583,12 +959,6 @@
                     login();
                 }
             });
-
-            document.getElementById('nameInput').addEventListener('keypress', function(e) {
-                if (e.key === 'Enter') {
-                    addName();
-                }
-            });
         });
 
         // Limpiar listener al cerrar la página
@@ -596,10 +966,13 @@
             if (unsubscribe) {
                 unsubscribe();
             }
+            if (autoSyncInterval) {
+                clearInterval(autoSyncInterval);
+            }
         });
 
-        // Log inicial para debugging
-        console.log('🚀 Script cargado, esperando inicialización...');
+        // Log inicial
+        console.log('🚀 Sistema World Boss cargado, esperando inicialización...');
     </script>
 </body>
 </html>
