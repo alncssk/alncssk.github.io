@@ -344,6 +344,9 @@
                 </div>
                 <div id="syncMessage"></div>
                 <div class="last-sync" id="lastSyncTime">Última sincronización: Nunca</div>
+                <div style="font-size: 12px; color: #666; margin-top: 10px;">
+                    💡 <strong>Orden recomendado:</strong> 1) Debug Página → 2) Test Extracción → 3) Sincronizar Ahora
+                </div>
             </div>
 
             <!-- Sección de Login -->
@@ -400,7 +403,7 @@
         // Variables globales
         const ADMIN_PASSWORD = "wbcaller123"; // Cambiar por tu contraseña
         const GUILD_NAME = "Morgana Enjoyers";
-        const CORS_PROXY = "https://api.allorigins.win/raw?url=";
+        const GUILD_URL = "https://albiondb.net/guild/Morgana+Enjoyers/"; // URL exacta del gremio
         
         let isAdminLoggedIn = false;
         let members = [];
@@ -446,15 +449,14 @@
             
             try {
                 console.log('🌐 Obteniendo miembros del gremio desde AlbionDB...');
-                
-                const guildUrl = `https://albiondb.net/guild/${encodeURIComponent(GUILD_NAME)}/`;
-                console.log('🔗 URL objetivo:', guildUrl);
+                console.log('🔗 URL objetivo:', GUILD_URL);
                 
                 // Intentar múltiples métodos de CORS proxy
                 const corsProxies = [
-                    `https://api.allorigins.win/raw?url=${encodeURIComponent(guildUrl)}`,
-                    `https://cors-anywhere.herokuapp.com/${guildUrl}`,
-                    `https://thingproxy.freeboard.io/fetch/${guildUrl}`
+                    `https://api.allorigins.win/raw?url=${encodeURIComponent(GUILD_URL)}`,
+                    `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(GUILD_URL)}`,
+                    `https://cors-anywhere.herokuapp.com/${GUILD_URL}`,
+                    `https://thingproxy.freeboard.io/fetch/${GUILD_URL}`
                 ];
                 
                 let htmlText = null;
@@ -465,8 +467,9 @@
                         console.log('🔄 Intentando proxy:', proxy);
                         const response = await fetch(proxy, {
                             headers: {
-                                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-                                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8'
+                                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+                                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+                                'Accept-Language': 'en-US,en;q=0.5'
                             }
                         });
                         
@@ -474,19 +477,23 @@
                             htmlText = await response.text();
                             usedProxy = proxy;
                             console.log('✅ Proxy exitoso:', proxy);
+                            console.log('📄 HTML obtenido, tamaño:', htmlText.length, 'caracteres');
                             break;
+                        } else {
+                            console.log('❌ Proxy falló:', proxy, response.status, response.statusText);
                         }
                     } catch (proxyError) {
-                        console.log('❌ Proxy falló:', proxy, proxyError.message);
+                        console.log('❌ Proxy error:', proxy, proxyError.message);
                         continue;
                     }
                 }
                 
                 if (!htmlText) {
-                    throw new Error('Todos los proxies CORS fallaron');
+                    throw new Error('Todos los proxies CORS fallaron. Verifica tu conexión a internet.');
                 }
                 
-                console.log('📄 Página HTML obtenida, analizando...', htmlText.length, 'caracteres');
+                console.log('📄 Página HTML obtenida exitosamente');
+                console.log('📄 Primeros 500 caracteres:', htmlText.substring(0, 500));
                 
                 // Crear parser DOM
                 const parser = new DOMParser();
@@ -495,7 +502,11 @@
                 const currentMembers = await extractMembersFromHTML(doc, htmlText);
                 
                 if (currentMembers.length === 0) {
-                    throw new Error('No se pudieron encontrar miembros en la página de AlbionDB');
+                    // Mostrar parte del HTML para debug
+                    console.log('🔍 HTML recibido (primeros 2000 chars) para debug:');
+                    console.log(htmlText.substring(0, 2000));
+                    
+                    throw new Error('No se pudieron encontrar miembros en la página de AlbionDB. Usa "🔍 Debug Página" para más información.');
                 }
                 
                 console.log(`✅ Total miembros encontrados: ${currentMembers.length}`);
@@ -508,7 +519,7 @@
                 await saveLastSyncTime();
                 loadLastSyncTime();
                 
-                showMessage('syncMessage', `✅ Sincronización completada: ${currentMembers.length} miembros actualizados desde AlbionDB`, 'success');
+                showMessage('syncMessage', `✅ Sincronización completada: ${currentMembers.length} miembros actualizados desde ${GUILD_URL}`, 'success');
                 
             } catch (error) {
                 console.error('❌ Error al sincronizar:', error);
@@ -725,10 +736,8 @@
             showMessage('syncMessage', '🔍 Analizando página de AlbionDB para debug...', 'loading');
             
             try {
-                const guildUrl = `https://albiondb.net/guild/${encodeURIComponent(GUILD_NAME)}/`;
-                const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(guildUrl)}`;
-                
-                console.log('🔗 URL objetivo:', guildUrl);
+                console.log('🔗 URL objetivo:', GUILD_URL);
+                const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(GUILD_URL)}`;
                 console.log('🔗 Proxy URL:', proxyUrl);
                 
                 const response = await fetch(proxyUrl);
@@ -773,17 +782,19 @@
                     
                     // Mostrar resultado en la interfaz
                     const debugInfo = `
-ANÁLISIS DE ALBIONDB:
-━━━━━━━━━━━━━━━━━━━━━━━━
+ANÁLISIS DE ALBIONDB - MORGANA ENJOYERS:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
+🔗 URL: ${GUILD_URL}
 ✅ "Current Guild Members" encontrado
 📊 Miembros encontrados: ${foundPlayers.length}
 ${memberCountMatch ? `📈 Número oficial: ${memberCountMatch[1]} miembros` : '❌ No se encontró número oficial'}
 
-👥 PRIMEROS JUGADORES:
-${foundPlayers.slice(0, 10).map(name => `• ${name}`).join('\n')}
+👥 JUGADORES ENCONTRADOS:
+${foundPlayers.slice(0, 15).map(name => `• ${name}`).join('\n')}
+${foundPlayers.length > 15 ? '\n...y más' : ''}
 
-🔍 Ver consola para más detalles
+🔍 Ver consola para detalles completos
                     `;
                     
                     showMessage('syncMessage', `🔍 Debug completado. Jugadores encontrados: ${foundPlayers.length}`, 'success');
@@ -797,19 +808,44 @@ ${foundPlayers.slice(0, 10).map(name => `• ${name}`).join('\n')}
                     
                 } else {
                     console.log('❌ "Current Guild Members" NO encontrado');
+                    
+                    // Buscar variaciones
+                    const variations = ['current guild members', 'guild members', 'members', 'Current Members'];
+                    const foundVariations = [];
+                    
+                    for (let variation of variations) {
+                        const index = data.contents.toLowerCase().indexOf(variation.toLowerCase());
+                        if (index !== -1) {
+                            foundVariations.push(`${variation}: posición ${index}`);
+                            console.log(`✅ Encontrado "${variation}" en posición ${index}`);
+                        }
+                    }
+                    
                     showMessage('syncMessage', '❌ No se encontró "Current Guild Members" en la página', 'error');
                     
                     // Mostrar las primeras líneas para debug
-                    console.log('📄 Primeras 1000 líneas de la página:');
-                    console.log(data.contents.substring(0, 1000));
+                    console.log('📄 Primeras 2000 caracteres de la página:');
+                    console.log(data.contents.substring(0, 2000));
                     
-                    alert('❌ No se encontró "Current Guild Members" en la página.\nVer consola para más detalles.');
+                    const debugInfo = `
+❌ NO SE ENCONTRÓ "Current Guild Members"
+
+🔍 Variaciones encontradas:
+${foundVariations.length > 0 ? foundVariations.join('\n') : 'Ninguna variación encontrada'}
+
+📄 Tamaño de página: ${data.contents.length} caracteres
+
+Ver consola para contenido completo de la página.
+                    `;
+                    
+                    alert(debugInfo);
                     return { found: false, players: [], memberCount: null };
                 }
                 
             } catch (error) {
                 console.error('❌ Error en debug:', error);
                 showMessage('syncMessage', `❌ Error en debug: ${error.message}`, 'error');
+                alert(`❌ Error en debug: ${error.message}`);
                 return { found: false, players: [], memberCount: null };
             }
         }
@@ -819,8 +855,8 @@ ${foundPlayers.slice(0, 10).map(name => `• ${name}`).join('\n')}
             showMessage('syncMessage', '🧪 Probando extracción específica...', 'loading');
             
             try {
-                const guildUrl = `https://albiondb.net/guild/${encodeURIComponent(GUILD_NAME)}/`;
-                const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(guildUrl)}`;
+                console.log('🔗 URL objetivo:', GUILD_URL);
+                const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(GUILD_URL)}`;
                 
                 const response = await fetch(proxyUrl);
                 const htmlText = await response.text();
@@ -837,20 +873,43 @@ ${foundPlayers.slice(0, 10).map(name => `• ${name}`).join('\n')}
                     console.log('✅ Extracción exitosa:', extractedMembers);
                     showMessage('syncMessage', `✅ Extracción exitosa: ${extractedMembers.length} miembros encontrados`, 'success');
                     
-                    const membersList = extractedMembers.slice(0, 15).join(', ');
-                    alert(`🎯 MIEMBROS EXTRAÍDOS (${extractedMembers.length}):\n\n${membersList}\n\n${extractedMembers.length > 15 ? '...y más' : ''}`);
+                    const membersList = extractedMembers.slice(0, 20).join(', ');
+                    const alertMessage = `
+🎯 MIEMBROS EXTRAÍDOS DE MORGANA ENJOYERS:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+📊 Total encontrados: ${extractedMembers.length}
+
+👥 LISTA DE MIEMBROS:
+${extractedMembers.slice(0, 20).map((name, i) => `${i+1}. ${name}`).join('\n')}
+${extractedMembers.length > 20 ? `\n...y ${extractedMembers.length - 20} más` : ''}
+
+¿Proceder con la sincronización?
+                    `;
+                    
+                    alert(alertMessage);
+                    
+                    // Preguntar si quiere sincronizar ahora
+                    const shouldSync = confirm('¿Actualizar la base de datos con estos miembros?');
+                    if (shouldSync) {
+                        await updateMembersInDatabase(extractedMembers);
+                        await saveLastSyncTime();
+                        loadLastSyncTime();
+                        showMessage('syncMessage', `✅ Base de datos actualizada con ${extractedMembers.length} miembros`, 'success');
+                    }
                     
                     return extractedMembers;
                 } else {
                     console.log('❌ No se extrajeron miembros');
                     showMessage('syncMessage', '❌ No se pudieron extraer miembros', 'error');
-                    alert('❌ No se pudieron extraer miembros.\nVer consola para detalles.');
+                    alert('❌ No se pudieron extraer miembros de la página.\n\nPosibles causas:\n- La página no cargó correctamente\n- El formato de AlbionDB cambió\n- Problemas de conectividad\n\nVer consola (F12) para más detalles.');
                     return [];
                 }
                 
             } catch (error) {
                 console.error('❌ Error en test de extracción:', error);
                 showMessage('syncMessage', `❌ Error: ${error.message}`, 'error');
+                alert(`❌ Error en test de extracción: ${error.message}`);
                 return [];
             }
         }
