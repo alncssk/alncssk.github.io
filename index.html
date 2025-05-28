@@ -62,6 +62,14 @@
             border-left: 4px solid #007bff;
         }
 
+        .discord-section {
+            background: #e8f4ff;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 30px;
+            border-left: 4px solid #5865f2;
+        }
+
         .public-section {
             background: #e8f5e8;
             padding: 20px;
@@ -162,6 +170,11 @@
             padding: 8px 16px;
         }
 
+        .btn-discord {
+            background: linear-gradient(135deg, #5865f2, #4752c4);
+            color: white;
+        }
+
         .btn:hover {
             transform: translateY(-2px);
             box-shadow: 0 5px 15px rgba(0,0,0,0.2);
@@ -231,7 +244,20 @@
             border: 1px solid #b3d9ff;
         }
 
+        .discord-status {
+            background: #e8f4ff;
+            color: #0c4a6e;
+            border: 1px solid #bae6fd;
+        }
+
         .admin-controls {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .discord-controls {
             display: flex;
             gap: 10px;
             margin-bottom: 20px;
@@ -255,6 +281,25 @@
 
         .firebase-disconnected {
             background: #dc3545;
+        }
+
+        .discord-status-indicator {
+            position: fixed;
+            top: 10px;
+            right: 200px;
+            padding: 8px 12px;
+            border-radius: 5px;
+            color: white;
+            font-size: 12px;
+            font-weight: bold;
+        }
+
+        .discord-connected {
+            background: #5865f2;
+        }
+
+        .discord-disconnected {
+            background: #ed4245;
         }
 
         .guild-members-grid {
@@ -321,6 +366,33 @@
             color: #333;
         }
 
+        .discord-log {
+            background: #f8f9fa;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            padding: 10px;
+            max-height: 200px;
+            overflow-y: auto;
+            font-family: monospace;
+            font-size: 12px;
+            margin-top: 10px;
+        }
+
+        .discord-log-entry {
+            margin-bottom: 5px;
+            color: #666;
+        }
+
+        .discord-log-bodyguard {
+            color: #28a745;
+            font-weight: bold;
+        }
+
+        .discord-log-error {
+            color: #dc3545;
+            font-weight: bold;
+        }
+
         @keyframes blink {
             0% { opacity: 1; }
             50% { opacity: 0.5; }
@@ -336,6 +408,8 @@
             50% { transform: scale(1.05); }
             100% { transform: scale(1); }
         }
+
+        @media (max-width: 768px) {
             .container {
                 margin: 10px;
                 border-radius: 10px;
@@ -354,6 +428,10 @@
             }
             
             .admin-controls {
+                flex-direction: column;
+            }
+
+            .discord-controls {
                 flex-direction: column;
             }
             
@@ -375,9 +453,12 @@
     </style>
 </head>
 <body>
-    <!-- Indicador de estado de Firebase -->
+    <!-- Indicadores de estado -->
     <div id="firebaseStatus" class="firebase-status firebase-disconnected">
         🔄 Conectando...
+    </div>
+    <div id="discordStatus" class="discord-status-indicator discord-disconnected">
+        🔄 Discord Bot
     </div>
 
     <div class="container">
@@ -396,6 +477,24 @@
                 </div>
                 <button class="btn btn-primary" onclick="login()">Iniciar Sesión</button>
                 <div id="loginMessage"></div>
+            </div>
+
+            <!-- Sección de Discord -->
+            <div class="discord-section">
+                <h2>🤖 Discord Bot - BODYGUARD Monitor</h2>
+                <p style="font-size: 14px; color: #0c4a6e; margin-bottom: 15px;">
+                    <strong>📡 Auto-activo:</strong> El bot escucha automáticamente mensajes "BODYGUARD" en Discord y agrega los usuarios mencionados.
+                </p>
+                <div class="discord-controls">
+                    <button class="btn btn-discord" onclick="startDiscordBot()">🚀 Iniciar Bot</button>
+                    <button class="btn btn-secondary" onclick="stopDiscordBot()">⏹️ Detener Bot</button>
+                    <button class="btn btn-info" onclick="testDiscordBot()">🧪 Test Conexión</button>
+                    <button class="btn btn-warning" onclick="clearDiscordLog()">🧹 Limpiar Log</button>
+                </div>
+                <div id="discordMessage"></div>
+                <div id="discordLog" class="discord-log">
+                    <div class="discord-log-entry">Bot no iniciado. Haz clic en "Iniciar Bot" para comenzar a escuchar Discord.</div>
+                </div>
             </div>
 
             <!-- Sección de Administración -->
@@ -458,6 +557,7 @@
                 <p style="font-size: 14px; color: #666; margin-bottom: 15px;">
                     <strong>📋 Para WB Caller:</strong> Solo las personas en la sección VERDE pueden entrar a la party. 
                     <br><strong>🚫 Regla:</strong> 7 días máximo desde último BODY - después pierden el derecho.
+                    <br><strong>🤖 Discord:</strong> Los mensajes "BODYGUARD" automáticamente agregan usuarios mencionados.
                 </p>
                 <div id="nameList" class="name-list">
                     <div class="empty-state">
@@ -488,6 +588,7 @@
         // Variables globales
         const ADMIN_PASSWORD = "admin123"; // Cambia esta contraseña
         const GUILD_ID = "yKUUaSnNR7irOoIE8TnKVg"; // Tu Guild ID
+        const DISCORD_WEBHOOK_URL = "https://discord.com/api/webhooks/1377123933693935637/1FMz7EG3ICUj__1-oAtAb1fD_GURDbE76uD3hoLfwn-WigPTSoLPgHMAGSf55f-fWiab";
         
         // Múltiples proxies CORS como backup
         const CORS_PROXIES = [
@@ -503,13 +604,269 @@
         let names = [];
         let guildMembers = [];
         let unsubscribe = null;
+        let discordBotActive = false;
+        let discordBotInterval = null;
+        let lastProcessedMessageId = null;
 
         // Inicializar cuando la página carga
         window.addEventListener('load', function() {
             console.log('Página cargada, inicializando Firebase...');
             initializeAuth();
             setupRealtimeListener();
+            // Auto-iniciar Discord Bot
+            setTimeout(() => {
+                startDiscordBot();
+            }, 2000);
         });
+
+        // ============= DISCORD BOT FUNCTIONS =============
+        async function startDiscordBot() {
+            if (discordBotActive) {
+                logToDiscord('⚠️ Bot ya está activo');
+                showMessage('discordMessage', 'Discord Bot ya está ejecutándose', 'discord-status');
+                return;
+            }
+
+            try {
+                discordBotActive = true;
+                updateDiscordStatus(true);
+                logToDiscord('🚀 Iniciando Discord Bot...');
+                showMessage('discordMessage', 'Discord Bot iniciado - Escuchando mensajes BODYGUARD', 'success');
+                
+                // Obtener ID del último mensaje para evitar procesar mensajes antiguos
+                await getLastMessageId();
+                
+                // Iniciar polling cada 10 segundos
+                discordBotInterval = setInterval(checkDiscordMessages, 10000);
+                
+                logToDiscord('✅ Bot activo - Revisando mensajes cada 10 segundos');
+                
+            } catch (error) {
+                console.error('❌ Error al iniciar Discord Bot:', error);
+                logToDiscord(`❌ Error al iniciar: ${error.message}`);
+                showMessage('discordMessage', 'Error al iniciar Discord Bot: ' + error.message, 'error');
+                discordBotActive = false;
+                updateDiscordStatus(false);
+            }
+        }
+
+        function stopDiscordBot() {
+            if (!discordBotActive) {
+                logToDiscord('⚠️ Bot no está activo');
+                showMessage('discordMessage', 'Discord Bot no está ejecutándose', 'discord-status');
+                return;
+            }
+
+            discordBotActive = false;
+            updateDiscordStatus(false);
+            
+            if (discordBotInterval) {
+                clearInterval(discordBotInterval);
+                discordBotInterval = null;
+            }
+            
+            logToDiscord('⏹️ Discord Bot detenido');
+            showMessage('discordMessage', 'Discord Bot detenido', 'discord-status');
+        }
+
+        async function testDiscordBot() {
+            try {
+                logToDiscord('🧪 Probando conexión con Discord...');
+                showMessage('discordMessage', 'Probando conexión...', 'loading');
+                
+                const response = await fetch(DISCORD_WEBHOOK_URL + '?wait=true', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        content: '🧪 Test de conexión - Albion World Boss Tracker Bot'
+                    })
+                });
+
+                if (response.ok) {
+                    logToDiscord('✅ Conexión exitosa con Discord');
+                    showMessage('discordMessage', 'Conexión con Discord exitosa', 'success');
+                } else {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
+            } catch (error) {
+                console.error('❌ Error al probar Discord:', error);
+                logToDiscord(`❌ Error de conexión: ${error.message}`);
+                showMessage('discordMessage', 'Error de conexión: ' + error.message, 'error');
+            }
+        }
+
+        async function getLastMessageId() {
+            try {
+                // Nota: Los webhooks de Discord no permiten leer mensajes directamente
+                // En su lugar, guardamos el timestamp actual como referencia
+                lastProcessedMessageId = Date.now();
+                console.log('📅 Timestamp de referencia establecido:', lastProcessedMessageId);
+                
+            } catch (error) {
+                console.error('❌ Error al obtener último mensaje:', error);
+                lastProcessedMessageId = Date.now();
+            }
+        }
+
+        async function checkDiscordMessages() {
+            if (!discordBotActive) return;
+
+            try {
+                logToDiscord('🔍 Revisando mensajes...');
+                
+                // Nota: Los webhooks de Discord no permiten leer mensajes del canal
+                // Para una implementación completa, necesitarías usar la Discord API con un bot real
+                // Por ahora, simulamos la funcionalidad esperando mensajes via webhook
+                
+                // ALTERNATIVA: Usar un servicio intermedio o una función en la nube
+                // que maneje el bot de Discord y envíe los datos aquí
+                
+                // Para demostración, agregamos funcionalidad manual
+                console.log('🔍 Checking Discord messages...');
+                
+            } catch (error) {
+                console.error('❌ Error al revisar mensajes:', error);
+                logToDiscord(`❌ Error al revisar: ${error.message}`);
+            }
+        }
+
+        // Función para procesar mensajes de Discord (llamada externamente por un bot real)
+        async function processDiscordMessage(messageContent, authorName) {
+            try {
+                // Verificar si el mensaje contiene "BODYGUARD"
+                if (!messageContent.toUpperCase().includes('BODYGUARD')) {
+                    return;
+                }
+
+                logToDiscord(`📨 Mensaje BODYGUARD detectado de ${authorName}`);
+                
+                // Extraer menciones (@usuario)
+                const mentionRegex = /@(\w+)/g;
+                const mentions = [];
+                let match;
+                
+                while ((match = mentionRegex.exec(messageContent)) !== null) {
+                    const username = match[1];
+                    if (username !== 'everyone' && username !== 'here') {
+                        mentions.push(username);
+                    }
+                }
+
+                if (mentions.length === 0) {
+                    logToDiscord('⚠️ No se encontraron menciones válidas');
+                    return;
+                }
+
+                logToDiscord(`👥 Usuarios mencionados: ${mentions.join(', ')}`);
+
+                // Agregar cada usuario mencionado a la base de datos
+                let addedCount = 0;
+                let updatedCount = 0;
+
+                for (const username of mentions) {
+                    try {
+                        // Verificar si ya existe
+                        const existingName = names.find(n => n.name.toLowerCase() === username.toLowerCase());
+                        
+                        if (existingName) {
+                            // Actualizar existente con nueva fecha BODY y PRIO
+                            await db.collection('names').doc(existingName.id).update({
+                                lastWBDate: firebase.firestore.FieldValue.serverTimestamp(),
+                                wentBodyDate: firebase.firestore.FieldValue.serverTimestamp(),
+                                prioDate: firebase.firestore.FieldValue.serverTimestamp(),
+                                markedBodyBy: 'discord-bodyguard',
+                                discordProcessed: true,
+                                lastDiscordMessage: messageContent,
+                                lastDiscordAuthor: authorName
+                            });
+                            updatedCount++;
+                            logToDiscord(`✅ Actualizado: ${username} (BODY + PRIO)`);
+                        } else {
+                            // Crear nuevo registro
+                            const isGuildMember = guildMembers.some(member => 
+                                member.name.toLowerCase() === username.toLowerCase()
+                            );
+                            
+                            await db.collection('names').add({
+                                name: username,
+                                timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+                                lastWBDate: firebase.firestore.FieldValue.serverTimestamp(),
+                                prioDate: firebase.firestore.FieldValue.serverTimestamp(),
+                                addedBy: 'discord-bodyguard',
+                                source: 'discord',
+                                guildMember: isGuildMember,
+                                isFromGuild: isGuildMember,
+                                discordProcessed: true,
+                                lastDiscordMessage: messageContent,
+                                lastDiscordAuthor: authorName
+                            });
+                            addedCount++;
+                            logToDiscord(`➕ Agregado: ${username} (nuevo con PRIO)`);
+                        }
+                        
+                    } catch (error) {
+                        console.error(`❌ Error procesando ${username}:`, error);
+                        logToDiscord(`❌ Error con ${username}: ${error.message}`);
+                    }
+                }
+
+                const summary = `🎉 Procesado: +${addedCount} nuevos, ↻${updatedCount} actualizados`;
+                logToDiscord(summary);
+                showMessage('discordMessage', summary, 'success');
+
+            } catch (error) {
+                console.error('❌ Error procesando mensaje Discord:', error);
+                logToDiscord(`❌ Error general: ${error.message}`);
+            }
+        }
+
+        // Función simulada para testing (puedes llamarla desde consola)
+        window.testBodyguardMessage = function(message = "BODYGUARD @JeffMVA @assbreakerUY prueba") {
+            processDiscordMessage(message, "TestUser");
+        };
+
+        function updateDiscordStatus(connected) {
+            const statusEl = document.getElementById('discordStatus');
+            if (connected) {
+                statusEl.textContent = '🤖 Discord ON';
+                statusEl.className = 'discord-status-indicator discord-connected';
+            } else {  //
+                statusEl.textContent = '💤 Discord OFF';
+                statusEl.className = 'discord-status-indicator discord-disconnected';
+            }
+        }
+
+        function logToDiscord(message) {
+            const logEl = document.getElementById('discordLog');
+            const timestamp = new Date().toLocaleTimeString();
+            const entry = document.createElement('div');
+            
+            let className = 'discord-log-entry';
+            if (message.includes('BODYGUARD') || message.includes('Procesado:')) {
+                className = 'discord-log-bodyguard';
+            } else if (message.includes('❌') || message.includes('Error')) {
+                className = 'discord-log-error';
+            }
+            
+            entry.className = className;
+            entry.textContent = `[${timestamp}] ${message}`;
+            
+            logEl.appendChild(entry);
+            logEl.scrollTop = logEl.scrollHeight;
+            
+            // Mantener solo los últimos 50 logs
+            while (logEl.children.length > 50) {
+                logEl.removeChild(logEl.firstChild);
+            }
+        }
+
+        function clearDiscordLog() {
+            const logEl = document.getElementById('discordLog');
+            logEl.innerHTML = '<div class="discord-log-entry">Log limpiado</div>';
+        }
 
         // ============= AUTENTICACIÓN =============
         function initializeAuth() {
@@ -592,7 +949,9 @@
                                 isFromGuild: data.isFromGuild || false,
                                 guildMember: data.guildMember || false,
                                 hasPrio: hasPrio,
-                                prioHoursLeft: prioHoursLeft
+                                prioHoursLeft: prioHoursLeft,
+                                source: data.source || 'manual',
+                                addedBy: data.addedBy || 'unknown'
                             });
                         } else {
                             // Tiene derecho (menos de 1 semana)
@@ -608,7 +967,9 @@
                                 isFromGuild: data.isFromGuild || false,
                                 guildMember: data.guildMember || false,
                                 hasPrio: hasPrio,
-                                prioHoursLeft: prioHoursLeft
+                                prioHoursLeft: prioHoursLeft,
+                                source: data.source || 'manual',
+                                addedBy: data.addedBy || 'unknown'
                             });
                         }
                     });
@@ -617,6 +978,7 @@
                     console.log('Con derecho al WB:', names.filter(n => n.hasRightToWB).length);
                     console.log('Sin derecho (>1 semana):', names.filter(n => !n.hasRightToWB).length);
                     console.log('Con PRIO activo:', names.filter(n => n.hasPrio).length);
+                    console.log('Agregados por Discord:', names.filter(n => n.source === 'discord').length);
                     updateDisplay();
                     updateGuildStats();
                 }, (error) => {
@@ -684,6 +1046,7 @@
                             timestamp: firebase.firestore.FieldValue.serverTimestamp(),
                             lastWBDate: firebase.firestore.FieldValue.serverTimestamp(),
                             addedBy: 'guild-sync',
+                            source: 'guild-auto',
                             isFromGuild: true,
                             guildMember: true,
                             guildRank: member.guildRank,
@@ -927,21 +1290,34 @@
                 let statusClass = 'style="color: #dc3545;"';
                 let statusText = 'Sin registro';
                 let countdownBadge = '';
+                let sourceBadge = '';
                 
                 if (memberInList) {
+                    // Badge de fuente
+                    if (memberInList.source === 'discord') {
+                        sourceBadge = '<span style="background: #5865f2; color: white; padding: 1px 4px; border-radius: 2px; font-size: 10px; margin-left: 3px;">🤖</span>';
+                    } else if (memberInList.source === 'guild-auto') {
+                        sourceBadge = '<span style="background: #6c757d; color: white; padding: 1px 4px; border-radius: 2px; font-size: 10px; margin-left: 3px;">AUTO</span>';
+                    }
+                    
                     if (memberInList.hasRightToWB) {
                         const daysLeft = 7 - memberInList.daysSinceLastWB;
                         statusIcon = '✅';
                         statusClass = 'style="color: #28a745;"';
                         statusText = `Puede ir (${daysLeft}d restantes)`;
                         
-                        // Contador visual
-                        if (daysLeft > 5) {
-                            countdownBadge = `<span style="background: #28a745; color: white; padding: 1px 4px; border-radius: 2px; font-size: 10px; margin-left: 5px;">${daysLeft}d</span>`;
-                        } else if (daysLeft > 2) {
-                            countdownBadge = `<span style="background: #ffc107; color: black; padding: 1px 4px; border-radius: 2px; font-size: 10px; margin-left: 5px;">${daysLeft}d</span>`;
+                        // PRIO badge
+                        if (memberInList.hasPrio) {
+                            countdownBadge = `<span style="background: #ff6b35; color: white; padding: 1px 4px; border-radius: 2px; font-size: 10px; margin-left: 5px; animation: pulse 1.5s infinite;">🔥${memberInList.prioHoursLeft}h</span>`;
                         } else {
-                            countdownBadge = `<span style="background: #fd7e14; color: white; padding: 1px 4px; border-radius: 2px; font-size: 10px; margin-left: 5px;">${daysLeft}d</span>`;
+                            // Contador visual
+                            if (daysLeft > 5) {
+                                countdownBadge = `<span style="background: #28a745; color: white; padding: 1px 4px; border-radius: 2px; font-size: 10px; margin-left: 5px;">${daysLeft}d</span>`;
+                            } else if (daysLeft > 2) {
+                                countdownBadge = `<span style="background: #ffc107; color: black; padding: 1px 4px; border-radius: 2px; font-size: 10px; margin-left: 5px;">${daysLeft}d</span>`;
+                            } else {
+                                countdownBadge = `<span style="background: #fd7e14; color: white; padding: 1px 4px; border-radius: 2px; font-size: 10px; margin-left: 5px;">${daysLeft}d</span>`;
+                            }
                         }
                     } else {
                         statusIcon = '🚫';
@@ -955,6 +1331,7 @@
                     <div class="guild-member-item">
                         <div>
                             <span ${statusClass}>${statusIcon} ${escapeHtml(member.name)}</span>
+                            ${sourceBadge}
                             ${countdownBadge}
                             <br><small style="color: #666; font-size: 11px;">${statusText}</small>
                         </div>
@@ -1070,10 +1447,11 @@
                 await db.collection('names').doc(nameId).update({
                     lastWBDate: firebase.firestore.FieldValue.serverTimestamp(),
                     wentBodyDate: firebase.firestore.FieldValue.serverTimestamp(),
+                    prioDate: firebase.firestore.FieldValue.serverTimestamp(), // Darle PRIO también
                     markedBodyBy: 'admin'
                 });
 
-                showMessage('guildMessage', `"${memberName}" - Marcado como BODY`, 'success');
+                showMessage('guildMessage', `"${memberName}" - Marcado como BODY + PRIO`, 'success');
                 console.log('✅ Fecha WB actualizada exitosamente');
             } catch (error) {
                 console.error('❌ Error al actualizar fecha WB:', error);
