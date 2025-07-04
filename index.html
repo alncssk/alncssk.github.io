@@ -683,7 +683,6 @@
                 // Obtener todos los nombres actuales en la lista pública
                 const publicListSnapshot = await db.collection('names').get();
                 const existingNames = {};
-                const namesToRemove = [];
                 
                 publicListSnapshot.forEach(doc => {
                     const data = doc.data();
@@ -706,7 +705,7 @@
                         // El miembro ya existe en la lista pública
                         existingNames[memberNameLower].isGuildMember = true;
                         
-                        // Actualizar para marcar como miembro del guild
+                        // Actualizar solo los campos relacionados con el guild, sin tocar lastWBDate
                         await db.collection('names').doc(existingNames[memberNameLower].id).update({
                             guildMember: true,
                             isFromGuild: true,
@@ -717,10 +716,11 @@
                         
                     } else {
                         // Nuevo miembro del guild, agregarlo a la lista pública
+                        // Para nuevos miembros, establecer lastWBDate a null para que no tengan derecho automáticamente
                         await db.collection('names').add({
                             name: member.name,
                             timestamp: firebase.firestore.FieldValue.serverTimestamp(),
-                            lastWBDate: firebase.firestore.FieldValue.serverTimestamp(),
+                            lastWBDate: null, // No dar derecho automáticamente a nuevos miembros
                             addedBy: 'guild-sync',
                             source: 'guild-auto',
                             isFromGuild: true,
